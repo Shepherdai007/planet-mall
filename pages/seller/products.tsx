@@ -41,7 +41,7 @@ export default function ProductsPage() {
 }
 
 function ProductManager() {
-  const { user, isPremium } = useAuth();
+  const { user, isPremium, isBusiness } = useAuth();
   const router    = useRouter();
   const [shop,     setShop]     = useState<ShopData|null>(null);
   const [products, setProducts] = useState<ProductData[]>([]);
@@ -66,7 +66,7 @@ function ProductManager() {
 
   // Open new product modal
   function openNew() {
-    if (!canAddProduct(products.length, isPremium)) {
+    if (!canAddProduct(products.length, isPremium, isBusiness)) {
       toast.error(getUpgradeMessage("products"));
       router.push("/pricing");
       return;
