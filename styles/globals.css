@@ -93,3 +93,23 @@ body {
   white-space: nowrap;
   border-width: 0;
 }
+
+/* ── Cream page backgrounds ──────────────────────────────────────
+   Applied to marketplace, orders, profile, pricing, food, trust.
+   Keeps the dark void for landing, auth, chat, and livestream.
+   ─────────────────────────────────────────────────────────────── */
+.page-cream {
+  background-color: #F6F1E9;
+  color: #1A1714;
+}
+
+.page-cream .text-paper    { color: #1A1714 !important; }
+.page-cream .text-muted    { color: #8A8480 !important; }
+.page-cream .bg-void       { background-color: #F6F1E9 !important; }
+
+/* Card style on cream pages */
+.page-cream .card {
+  background: #ffffff;
+  border: 1px solid #E8E2D9;
+  border-radius: 1rem;
+}

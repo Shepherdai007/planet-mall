@@ -98,7 +98,7 @@ export default function OrdersPage() {
     <>
       <Head><title>My Orders — Planet Mall</title></Head>
       <Layout>
-        <div className="min-h-screen bg-void pt-10 pb-20 px-4">
+        <div className="min-h-screen bg-cream pt-10 pb-20 px-4">
           <div className="max-w-3xl mx-auto">
             <h1 className="font-syne font-bold text-3xl text-paper mb-2">My orders</h1>
             <p className="text-sm text-muted font-dm-sans mb-8">

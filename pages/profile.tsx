@@ -60,7 +60,7 @@ export default function ProfilePage() {
     <>
       <Head><title>Profile — Planet Mall</title></Head>
       <Layout>
-        <div className="min-h-screen bg-void pt-12 pb-20 px-4">
+        <div className="min-h-screen bg-cream pt-12 pb-20 px-4">
           <div className="max-w-lg mx-auto">
             <h1 className="font-syne font-bold text-3xl text-paper mb-10">My profile</h1>
 

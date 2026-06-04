@@ -17,7 +17,7 @@ export default function TrustPage() {
         <meta name="description" content="How Planet Mall protects buyers and sellers. Report scams, understand buyer protection, and learn about our secure payment system." />
       </Head>
       <Layout>
-        <div className="min-h-screen bg-void pt-16 pb-24 px-4">
+        <div className="min-h-screen bg-cream pt-16 pb-24 px-4">
           <div className="max-w-3xl mx-auto">
 
             {/* Header */}

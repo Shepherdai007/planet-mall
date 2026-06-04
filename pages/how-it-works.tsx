@@ -15,7 +15,7 @@ export default function HowItWorksPage() {
         <meta name="description" content="How Planet Mall's secure escrow payment system protects both buyers and sellers." />
       </Head>
       <Layout>
-        <div className="min-h-screen bg-void pt-16 pb-24 px-4">
+        <div className="min-h-screen bg-cream pt-16 pb-24 px-4">
           <div className="max-w-3xl mx-auto">
 
             {/* Header */}

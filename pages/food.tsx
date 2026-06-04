@@ -74,7 +74,7 @@ export default function FoodPage() {
         <title>Planet Mall Food — Order food & meals</title>
       </Head>
       <Layout>
-        <div className="min-h-screen bg-void pb-20">
+        <div className="min-h-screen bg-cream pb-20">
 
           {/* Hero */}
           <div className="relative py-16 px-4 text-center overflow-hidden"

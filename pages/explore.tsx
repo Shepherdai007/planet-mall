@@ -104,12 +104,12 @@ export default function ExplorePage() {
       </Head>
 
       <Layout>
-        <div className="min-h-screen bg-void pt-6 pb-20">
+        <div className="min-h-screen bg-cream pt-6 pb-20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6">
 
             {/* ── Header ───────────────────────────────── */}
             <div className="mb-8">
-              <h1 className="font-syne font-bold text-3xl text-paper mb-1">Explore</h1>
+              <h1 className="font-syne font-bold text-3xl text-ink mb-1">Explore</h1>
               <p className="text-sm font-dm-sans text-muted">
                 {filtered.length} product{filtered.length !== 1 ? "s" : ""} found
               </p>
@@ -125,13 +125,13 @@ export default function ExplorePage() {
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="Search products..."
-                  className="w-full pl-9 pr-4 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-sm font-dm-sans text-paper placeholder:text-muted/40 focus:outline-none focus:border-rust/50"
+                  className="w-full pl-9 pr-4 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-sm font-dm-sans text-ink placeholder:text-muted/40 focus:outline-none focus:border-rust/50"
                 />
               </div>
               <select
                 value={sort}
                 onChange={e => setSort(e.target.value)}
-                className="px-4 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-sm font-dm-sans text-paper focus:outline-none"
+                className="px-4 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-sm font-dm-sans text-ink focus:outline-none"
               >
                 {SORTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
@@ -171,7 +171,7 @@ export default function ExplorePage() {
             ) : filtered.length === 0 ? (
               <div className="py-24 text-center">
                 <p className="text-4xl mb-4">🔍</p>
-                <p className="font-syne font-semibold text-paper mb-2">No products found</p>
+                <p className="font-syne font-semibold text-ink mb-2">No products found</p>
                 <p className="text-sm text-muted font-dm-sans">
                   {search ? `No results for "${search}"` : "No products in this category yet"}
                 </p>
@@ -241,13 +241,13 @@ function ProductCard({
           </Link>
         )}
         <Link href={`/product/${product.productId}`}>
-          <p className="text-sm font-dm-sans font-medium text-paper mb-2 line-clamp-2 leading-snug">
+          <p className="text-sm font-dm-sans font-medium text-ink mb-2 line-clamp-2 leading-snug">
             {product.name}
           </p>
         </Link>
         <div className="flex items-center justify-between">
           <div>
-            <p className="font-syne font-bold text-paper text-sm">
+            <p className="font-syne font-bold text-ink text-sm">
               {formatCurrency(product.price, (product.currency as any) || "CAD")}
             </p>
             {product.comparePrice && product.comparePrice > product.price && (
@@ -262,7 +262,7 @@ function ProductCard({
             style={{ background: hovered ? "#C4531A" : "rgba(255,255,255,0.06)" }}
             aria-label="Add to cart"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-paper">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-ink">
               <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
               <line x1="3" y1="6" x2="21" y2="6"/>
               <path d="M16 10a4 4 0 01-8 0"/>
