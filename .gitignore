@@ -1,0 +1,33 @@
+# ── SECRETS — NEVER COMMIT ──────────────────────────────────────
+.env.local
+.env.*.local
+.env
+
+# ── NEXT.JS ─────────────────────────────────────────────────────
+.next/
+out/
+build/
+
+# ── NODE ─────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── FIREBASE ─────────────────────────────────────────────────────
+.firebase/
+firebase-debug.log
+
+# ── OS ───────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── VERCEL ───────────────────────────────────────────────────────
+.vercel
+
+# ── PWA ──────────────────────────────────────────────────────────
+public/sw.js
+public/workbox-*.js
+public/worker-*.js
+public/sw.js.map
+public/workbox-*.js.map

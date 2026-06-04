@@ -1,0 +1,95 @@
+/* styles/globals.css */
+/* ── PLANET MALL — GLOBAL STYLES ──────────────────────────────── */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Google Fonts import ─────────────────────────────────────────
+   Phase 1: Syne + DM Sans
+   (Other phase fonts loaded per-page or per-component)
+   ─────────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=Figtree:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Instrument+Sans:wght@400;500&display=swap');
+
+/* ── CSS custom properties ───────────────────────────────────────
+   Single source of truth for all brand colors.
+   Tailwind config mirrors these — keep in sync.
+   ─────────────────────────────────────────────────────────────── */
+:root {
+  --color-rust:   #C4531A;
+  --color-gold:   #D4A84B;
+  --color-green:  #2A6B45;
+  --color-void:   #0A0908;
+  --color-cream:  #F6F1E9;
+  --color-paper:  #F2EDE4;
+  --color-ink:    #1A1714;
+  --color-muted:  #8A8480;
+}
+
+/* ── Base resets ─────────────────────────────────────────────────*/
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-void);
+  color: var(--color-paper);
+  font-family: 'DM Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Grain texture overlay ───────────────────────────────────────
+   Applied via a pseudo-element on elements with .grain class.
+   Opacity 0.025 — subtle, not overwhelming.
+   ─────────────────────────────────────────────────────────────── */
+.grain::after {
+  content: '';
+  position: fixed;
+  inset: -200%;
+  width: 400%;
+  height: 400%;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  opacity: 0.025;
+  pointer-events: none;
+  animation: grain 0.5s steps(1) infinite;
+  z-index: 9999;
+}
+
+/* ── Scrollbar — subtle dark style ──────────────────────────────*/
+::-webkit-scrollbar       { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+/* ── Selection color ─────────────────────────────────────────────*/
+::selection {
+  background: var(--color-rust);
+  color: #fff;
+}
+
+/* ── Focus ring — accessible, on-brand ──────────────────────────*/
+:focus-visible {
+  outline: 2px solid var(--color-rust);
+  outline-offset: 2px;
+}
+
+/* ── Utility: visually hidden (accessibility) ───────────────────*/
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border-width: 0;
+}
