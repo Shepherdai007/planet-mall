@@ -10,6 +10,8 @@ import { db }            from "@/lib/firebase";
 import Layout            from "@/components/Layout";
 import { useCart }       from "@/context/CartContext";
 import { formatCurrency } from "@/lib/helpers";
+import { FOOD_CATEGORIES } from "@/lib/escrow";
+import FollowButton from "@/components/FollowButton";
 import type { ShopData }    from "@/services/shopService";
 import type { ProductData } from "@/services/productService";
 import toast from "react-hot-toast";
@@ -94,6 +96,9 @@ export default function ShopPage() {
                   <span>{products.length} products</span>
                   <span>·</span>
                   <span>{shop.followers||0} followers</span>
+                </div>
+                <div className="mt-3">
+                  <FollowButton shopId={shop.shopId!} shopName={shop.name} />
                 </div>
               </div>
             </div>

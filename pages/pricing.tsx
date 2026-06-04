@@ -201,8 +201,8 @@ export default function PricingPage() {
                     </ul>
 
                     <button
-                      onClick={() => handleUpgrade(plan.planKey)}
-                      disabled={isCurrentPlan || !!loading}
+                      onClick={() => !plan.planKey ? router.push("/auth/signup") : handleUpgrade(plan.planKey)}
+                      disabled={isCurrentPlan || (plan.planKey !== null && !!loading)}
                       className="w-full py-3.5 rounded-xl text-sm font-dm-sans font-semibold transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                       style={{
                         background: isCurrentPlan
@@ -215,8 +215,7 @@ export default function PricingPage() {
                       }}>
                       {loading === plan.planKey ? (
                         <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Redirecting...</>
-                      ) : isCurrentPlan ? "✓ Current plan" : plan.cta}
-                    </button>
+                      ) : isCurrentPlan ? "✓ Current plan" : plan.cta}                    </button>
                   </div>
                 );
               })}

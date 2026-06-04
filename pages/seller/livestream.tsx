@@ -18,6 +18,7 @@ import {
   pinProduct, unpinProduct, listenLiveChat, sendLiveChatMessage,
   generateChannelName,
 } from "@/services/livestreamService";
+import { notifyFollowersLive } from "@/services/followService";
 import { formatCurrency }     from "@/lib/helpers";
 import type { ShopData }      from "@/services/shopService";
 import type { ProductData }   from "@/services/productService";
@@ -131,6 +132,9 @@ function BroadcastStudio() {
       setStreamId(id);
       setIsLive(true);
       toast.success("You're live! 🔴");
+
+      // Notify all followers
+      await notifyFollowersLive(shop.shopId!, shop.name, id, title.trim());
 
       // Mock viewer count updates (replace with real Agora events)
       const interval = setInterval(() => {
