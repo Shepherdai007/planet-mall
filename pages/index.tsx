@@ -405,9 +405,9 @@ const PLANS = [
   {
     id: "premium",
     name: "Premium",
-    price: "CA$9.99",
+    price: "CA$14.99",
     period: "month",
-    subtitle: "or CA$89/year (save 25%)",
+    subtitle: "or CA$129/year (save 25%)",
     featured: true,
     cta: "Start Premium",
     features: [
@@ -426,7 +426,7 @@ const PLANS = [
   {
     id: "business",
     name: "Business",
-    price: "CA$29.99",
+    price: "CA$39.99",
     period: "month",
     subtitle: "For serious scale",
     featured: false,

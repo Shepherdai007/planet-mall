@@ -15,9 +15,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const PLANS: Record<string, { amount: number; interval: "month" | "year"; name: string; planName: string }> = {
-    premium_monthly:  { amount: 999,  interval: "month", name: "Planet Mall Premium",         planName: "premium" },
-    premium_yearly:   { amount: 8900, interval: "year",  name: "Planet Mall Premium (Yearly)", planName: "premium" },
-    business_monthly: { amount: 2999, interval: "month", name: "Planet Mall Business",         planName: "business" },
+    premium_monthly:  { amount: 1499,  interval: "month", name: "Planet Mall Premium",         planName: "premium" },
+    premium_yearly:   { amount: 12900, interval: "year",  name: "Planet Mall Premium (Yearly)", planName: "premium" },
+    business_monthly: { amount: 3999, interval: "month", name: "Planet Mall Business",         planName: "business" },
   };
 
   const selected = PLANS[plan];

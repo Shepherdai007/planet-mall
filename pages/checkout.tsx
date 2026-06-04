@@ -15,6 +15,7 @@ import { formatCurrency } from "@/lib/helpers";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db }         from "@/lib/firebase";
 import BuyerProtectionBadge from "@/components/BuyerProtectionBadge";
+import OrderReview from "@/components/OrderReview";
 
 const SHIPPING_OPTIONS = [
   { id:"standard", label:"Standard shipping",  eta:"5–7 business days", price:0 },
@@ -40,6 +41,7 @@ export default function CheckoutPage() {
     phone:     "",
   });
   const [placing, setPlacing] = useState(false);
+  const [step,    setStep]    = useState<"form"|"review">("form");
 
   const shippingOption = SHIPPING_OPTIONS.find(s => s.id === shipping)!;
   const shippingCost   = shippingOption.price;
@@ -50,8 +52,21 @@ export default function CheckoutPage() {
     setForm(f => ({...f, [key]: value}));
   }
 
-  async function handlePlaceOrder(e: React.FormEvent) {
-    e.preventDefault();
+  async function handlePlaceOrder(e?: React.FormEvent) {
+    e?.preventDefault();
+    if (step === "form") {
+      // Validate form fields first
+      if (!form.firstName || !form.address || !form.city || !form.postal) {
+        toast.error("Please fill in all required fields");
+        return;
+      }
+      setStep("review");
+      return;
+    }
+    await placeOrder();
+  }
+
+  async function placeOrder() {
     if (!user) { router.push("/auth/login?redirect=/checkout"); return; }
     if (items.length === 0) { toast.error("Your cart is empty"); return; }
 
@@ -128,13 +143,32 @@ export default function CheckoutPage() {
           <div className="flex items-center gap-2 text-xs font-dm-sans text-muted">
             <span className="text-rust">Cart</span>
             <span>›</span>
-            <span className="text-paper font-semibold">Checkout</span>
+            <span className={step==="form"?"text-paper font-semibold":"text-muted"}>Checkout</span>
+            <span>›</span>
+            <span className={step==="review"?"text-paper font-semibold":"text-muted"}>Review</span>
             <span>›</span>
             <span>Confirmation</span>
           </div>
         </div>
 
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
+          {/* Review step */}
+          {step === "review" ? (
+            <div className="max-w-2xl mx-auto">
+              <OrderReview
+                items={items}
+                subtotal={subtotal}
+                shippingCost={shippingOption.price}
+                tax={subtotal * 0.13}
+                total={subtotal + shippingOption.price + subtotal * 0.13}
+                shippingAddress={form}
+                shippingMethod={shipping}
+                onConfirm={placeOrder}
+                onBack={()=>setStep("form")}
+                placing={placing}
+              />
+            </div>
+          ) : (
           <form onSubmit={handlePlaceOrder}>
             <div className="grid lg:grid-cols-3 gap-10">
 
@@ -296,6 +330,7 @@ export default function CheckoutPage() {
               </div>
             </div>
           </form>
+          )} {/* end review conditional */}
         </div>
       </div>
     </>

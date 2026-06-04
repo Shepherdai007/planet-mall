@@ -15,7 +15,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const now        = new Date();
-  const cutoff     = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000); // 14 days ago
+  // Standard: 14 days, Food: 2 hours
+    const cutoffStandard = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+    const cutoffFood     = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+    const cutoff = cutoffStandard; // default // 14 days ago
 
   try {
     // Find all shipped orders older than 14 days with escrow still "held"

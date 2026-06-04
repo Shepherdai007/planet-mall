@@ -48,6 +48,9 @@ export default function Navbar() {
           <Link href="/explore" className="hover:text-paper transition-colors">
             Explore
           </Link>
+          <Link href="/food" className="hover:text-paper transition-colors flex items-center gap-1">
+            🍽 Food
+          </Link>
           <Link href="/pricing" className="hover:text-paper transition-colors">
             Pricing
           </Link>
