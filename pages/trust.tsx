@@ -49,7 +49,7 @@ export default function TrustPage() {
                   {[
                     { title: "Item not received", desc: "If your order never arrives, you're entitled to a full refund. Open a dispute within 30 days of your expected delivery date." },
                     { title: "Item not as described", desc: "If what you receive is significantly different from what was advertised, you can return it for a full refund." },
-                    { title: "Unauthorized payment", desc: "If you didn't make a purchase but see a charge, contact us immediately at safety@planetmall.com." },
+                    { title: "Unauthorized payment", desc: "If you didn't make a purchase but see a charge, contact us immediately at planetmallhg@gmail.com." },
                     { title: "30-day dispute window", desc: "You have 30 days from the delivery date (or expected delivery date if not received) to open a dispute." },
                   ].map(({title,desc}) => (
                     <li key={title} className="flex gap-3">
@@ -125,7 +125,7 @@ export default function TrustPage() {
                 <div className="space-y-4">
                   {[
                     { step:"1", title:"Report on the platform", desc:"Use the Report button on any product page, shop page, or livestream. Select the reason and describe what happened." },
-                    { step:"2", title:"Contact us directly", desc:"Email safety@planetmall.com with your order number and details. Include screenshots if you have them." },
+                    { step:"2", title:"Contact us directly", desc:"Email planetmallhg@gmail.com with your order number and details. Include screenshots if you have them." },
                     { step:"3", title:"Open a dispute", desc:"Go to your Orders page → find the order → click 'Open dispute'. This freezes the seller's payout until resolved." },
                     { step:"4", title:"Contact your bank if needed", desc:"For serious fraud, contact your card issuer to initiate a chargeback. Stripe's buyer protection also applies." },
                   ].map(({step,title,desc}) => (
@@ -146,10 +146,10 @@ export default function TrustPage() {
                 <div className="mt-6 p-4 rounded-2xl text-center" style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)"}}>
                   <p className="text-sm font-dm-sans text-paper mb-3">Report a seller, product, or issue directly:</p>
                   <div className="flex justify-center">
-                    <Link href="mailto:safety@planetmall.com"
+                    <Link href="mailto:planetmallhg@gmail.com"
                       className="px-6 py-2.5 rounded-xl text-white text-sm font-dm-sans font-semibold"
                       style={{background:"#C4531A"}}>
-                      📧 Email safety@planetmall.com
+                      📧 Email planetmallhg@gmail.com
                     </Link>
                   </div>
                 </div>
@@ -223,10 +223,10 @@ export default function TrustPage() {
                 <p className="font-syne font-bold text-2xl text-paper mb-3">Still have a concern?</p>
                 <p className="text-muted font-dm-sans mb-6">Our safety team is available 7 days a week.</p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Link href="mailto:safety@planetmall.com"
+                  <Link href="mailto:planetmallhg@gmail.com"
                     className="px-8 py-3.5 rounded-xl text-white font-dm-sans font-semibold"
                     style={{background:"#C4531A"}}>
-                    📧 safety@planetmall.com
+                    📧 planetmallhg@gmail.com
                   </Link>
                   <Link href="/explore"
                     className="px-8 py-3.5 rounded-xl font-dm-sans font-medium border border-white/10 text-muted hover:text-paper transition-colors">
