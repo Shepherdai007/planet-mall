@@ -15,7 +15,7 @@ import {
   getProductsByShop, createProduct, updateProduct,
   deleteProduct, uploadProductImage,
 } from "@/services/productService";
-import { formatCurrency } from "@/lib/helpers";
+import { canAddProduct, getUpgradeMessage } from "@/lib/freeTier";
 import { formatCurrency } from "@/lib/helpers";
 import type { ShopData }     from "@/services/shopService";
 import type { ProductData }  from "@/services/productService";
