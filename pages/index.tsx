@@ -184,6 +184,46 @@ export default function LandingPage() {
             </div>
           </section>
 
+          {/* ── VIDEO SHOWCASE ────────────────────────────────── */}
+          <section className="py-16 px-4">
+            <div className="max-w-7xl mx-auto">
+              <div className="text-center mb-10">
+                <p className="text-rust text-xs font-dm-sans uppercase tracking-[0.2em] mb-3">Shop everything</p>
+                <h2 className="font-syne font-bold text-3xl sm:text-4xl text-paper">
+                  One marketplace. Every category.
+                </h2>
+              </div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                  { video:"/vid-phones.mp4",   label:"Phones & Electronics", href:"/explore",      emoji:"📱" },
+                  { video:"/vid-cars.mp4",      label:"Cars & Vehicles",      href:"/classifieds",  emoji:"🚗" },
+                  { video:"/vid-shoes.mp4",     label:"Shoes & Fashion",      href:"/explore",      emoji:"👟" },
+                  { video:"/vid-shopping.mp4",  label:"Shop Everything",      href:"/explore",      emoji:"🛍" },
+                ].map(({video,label,href,emoji}) => (
+                  <a key={label} href={href}
+                    className="relative rounded-2xl overflow-hidden group cursor-pointer block"
+                    style={{height:"280px"}}>
+                    <video autoPlay muted loop playsInline
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
+                      <source src={video} type="video/mp4" />
+                    </video>
+                    {/* Gradient overlay */}
+                    <div className="absolute inset-0"
+                      style={{background:"linear-gradient(to top, rgba(10,9,8,0.85) 0%, rgba(10,9,8,0.2) 50%, transparent 100%)"}} />
+                    {/* Label */}
+                    <div className="absolute bottom-0 left-0 right-0 p-4">
+                      <p className="text-xl mb-1">{emoji}</p>
+                      <p className="font-syne font-bold text-paper text-sm leading-tight">{label}</p>
+                      <p className="text-xs text-muted font-dm-sans mt-0.5 group-hover:text-rust transition-colors">
+                        Shop now →
+                      </p>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </div>
+          </section>
+
           {/* ── FEATURES ──────────────────────────────────────── */}
           <section className="py-32 px-4 max-w-7xl mx-auto">
             <div className="text-center mb-20">
