@@ -45,15 +45,10 @@ export default function Navbar() {
 
         {/* ── Desktop nav links ─────────────────────────────────── */}
         <div className="hidden md:flex items-center gap-6 text-sm font-dm-sans text-muted">
-          <Link href="/explore" className="hover:text-paper transition-colors">
-            Explore
-          </Link>
-          <Link href="/food" className="hover:text-paper transition-colors flex items-center gap-1">
-            🍽 Food
-          </Link>
-          <Link href="/pricing" className="hover:text-paper transition-colors">
-            Pricing
-          </Link>
+          <Link href="/explore" className="hover:text-paper transition-colors">Explore</Link>
+          <Link href="/classifieds" className="hover:text-paper transition-colors">Classifieds</Link>
+          <Link href="/food" className="hover:text-paper transition-colors flex items-center gap-1">🍽 Food</Link>
+          <Link href="/pricing" className="hover:text-paper transition-colors">Pricing</Link>
           <Link href="/messages" className="hover:text-paper transition-colors">
             Messages
           </Link>
