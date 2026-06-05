@@ -40,7 +40,11 @@ export default function ClassifiedDetailPage() {
     if (!user || !listing) { router.push("/auth/login"); return; }
     setMessaging(true);
     try {
-      const convId = await getOrCreateConversation(user.uid, listing.sellerId, listing.id!, listing.title);
+      const convId = await getOrCreateConversation(
+        user.uid, userDoc?.displayName || "", userDoc?.photoURL || "",
+        listing.sellerId, listing.sellerName, listing.sellerPhoto,
+        listing.id!, listing.title, listing.images?.[0] || ""
+      );
       router.push(`/messages/${convId}`);
     } catch { toast.error("Failed to open chat"); }
     finally { setMessaging(false); }
