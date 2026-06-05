@@ -91,6 +91,7 @@ export default function PostClassifiedPage() {
         condition:   form.condition,
         status:      "active",
         useEscrow:   form.useEscrow,
+        featuredUntil: null,
         tags:        form.tags.split(",").map(t=>t.trim()).filter(Boolean),
       });
       toast.success("Ad posted! 🎉");
