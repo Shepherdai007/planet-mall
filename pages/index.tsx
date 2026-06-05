@@ -69,20 +69,26 @@ export default function LandingPage() {
           {/* ── HERO ─────────────────────────────────────────── */}
           <section className="relative min-h-screen flex flex-col items-center justify-center px-4 overflow-hidden">
 
-            {/* Background grid */}
-            <div
-              className="absolute inset-0 opacity-[0.03]"
-              style={{
-                backgroundImage: "linear-gradient(var(--color-paper) 1px, transparent 1px), linear-gradient(90deg, var(--color-paper) 1px, transparent 1px)",
-                backgroundSize: "60px 60px",
-              }}
-            />
+            {/* ── Video background ─────────────────────────────── */}
+            <video
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover"
+              style={{zIndex:0}}
+            >
+              <source src="/hero.mp4" type="video/mp4" />
+            </video>
 
-            {/* Radial glow */}
-            <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-rust/5 rounded-full blur-3xl pointer-events-none" />
+            {/* Dark overlay so text is readable */}
+            <div className="absolute inset-0" style={{background:"rgba(10,9,8,0.65)",zIndex:1}} />
+
+            {/* Subtle radial glow */}
+            <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-rust/10 rounded-full blur-3xl pointer-events-none" style={{zIndex:1}} />
 
             {/* Content */}
-            <div className="relative z-10 text-center max-w-5xl mx-auto">
+            <div className="relative text-center max-w-5xl mx-auto" style={{zIndex:2}}>
 
               {/* Badge */}
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-dm-sans text-muted mb-8 animate-fade-in">
