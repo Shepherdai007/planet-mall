@@ -47,6 +47,7 @@ export default function LandingPage() {
     <>
       <Head>
         <title>Planet Mall — The world's market, in your pocket</title>
+        <meta name="google-site-verification" content="opSysJ_v6Vw3YOkzY6WZwRc0doBGMT-pJH-1VpfYDSM" />
         <meta
           name="description"
           content="AI-powered virtual shopping mall for the world. Open a store, sell live, grow with AI. Open a store, sell live, grow with AI."
