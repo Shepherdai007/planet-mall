@@ -95,7 +95,12 @@ export default function SignupPage() {
         <title>Create account — Planet Mall</title>
       </Head>
 
-      <div className="min-h-screen bg-void flex items-center justify-center px-4 py-12">
+      <div className="min-h-screen flex items-center justify-center px-4 py-12 relative overflow-hidden" style={{background:"#0A0908"}}>
+        {/* Video background */}
+        <video autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover" style={{zIndex:0}}>
+          <source src="/auth-bg2.mp4" type="video/mp4" />
+        </video>
+        <div className="absolute inset-0" style={{background:"rgba(10,9,8,0.75)",zIndex:1}} />
         <div className="w-full max-w-[480px]">
 
           {/* Logo */}

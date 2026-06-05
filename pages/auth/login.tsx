@@ -68,16 +68,15 @@ export default function LoginPage() {
       <div className="min-h-screen bg-void flex">
 
         {/* ── Left: branding panel (hidden on mobile) ─────────── */}
-        <div className="hidden lg:flex w-1/2 bg-[#0D0B0A] border-r border-white/[0.04] flex-col justify-between p-16 relative overflow-hidden">
-          {/* Grid bg */}
-          <div
-            className="absolute inset-0 opacity-[0.03]"
-            style={{
-              backgroundImage: "linear-gradient(var(--color-paper) 1px, transparent 1px), linear-gradient(90deg, var(--color-paper) 1px, transparent 1px)",
-              backgroundSize: "60px 60px",
-            }}
-          />
-          <div className="absolute top-1/3 left-1/4 w-80 h-80 bg-rust/8 rounded-full blur-3xl" />
+        <div className="hidden lg:flex w-1/2 flex-col justify-between p-16 relative overflow-hidden" style={{background:"#0D0B0A"}}>
+          {/* Video background */}
+          <video autoPlay muted loop playsInline
+            className="absolute inset-0 w-full h-full object-cover" style={{zIndex:0}}>
+            <source src="/auth-bg1.mp4" type="video/mp4" />
+          </video>
+          {/* Dark overlay */}
+          <div className="absolute inset-0" style={{background:"rgba(10,9,8,0.7)",zIndex:1}} />
+          <div className="absolute top-1/3 left-1/4 w-80 h-80 bg-rust/10 rounded-full blur-3xl" style={{zIndex:1}} />
 
           {/* Logo */}
           <div className="relative z-10 flex items-center gap-2.5">
