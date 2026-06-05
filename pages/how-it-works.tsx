@@ -223,7 +223,7 @@ export default function HowItWorksPage() {
                 </Link>
               </div>
               <p className="text-xs text-muted font-dm-sans mt-6">
-                Questions? <Link href="/trust" className="text-rust hover:underline">Visit our Trust & Safety center</Link> or email planetmallhg@gmail.com
+                Questions? <Link href="/trust" className="text-rust hover:underline">Visit our Trust & Safety center</Link> or email planetmallshop@gmail.com
               </p>
             </div>
           </div>
