@@ -118,7 +118,7 @@ export default function PricingPage() {
     <>
       <Head><title>Pricing — Planet Mall</title></Head>
       <Layout>
-        <div className="min-h-screen bg-cream pt-20 pb-24 px-4">
+        <div className="min-h-screen bg-void pt-20 pb-24 px-4">
           <div className="max-w-6xl mx-auto">
 
             {/* Header */}

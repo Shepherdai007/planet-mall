@@ -77,20 +77,21 @@ export default function FoodPage() {
         <div className="min-h-screen bg-cream pb-20">
 
           {/* Hero */}
-          <div className="relative py-16 px-4 text-center overflow-hidden"
-            style={{background:"linear-gradient(135deg, rgba(196,83,26,0.15), rgba(212,168,75,0.1))"}}>
-            <div className="absolute inset-0 opacity-[0.03]"
-              style={{backgroundImage:"linear-gradient(var(--color-paper) 1px, transparent 1px), linear-gradient(90deg, var(--color-paper) 1px, transparent 1px)",backgroundSize:"40px 40px"}} />
-            <div className="relative z-10 max-w-2xl mx-auto">
+          <div className="relative py-16 px-4 text-center overflow-hidden" style={{minHeight:"320px",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+            {/* Video background */}
+            <video autoPlay muted loop playsInline
+              className="absolute inset-0 w-full h-full object-cover" style={{zIndex:0}}>
+              <source src="/food-hero.mp4" type="video/mp4" />
+            </video>
+            {/* Dark overlay */}
+            <div className="absolute inset-0" style={{background:"rgba(10,9,8,0.6)",zIndex:1}} />
+            <div className="relative" style={{zIndex:2}}>
               <p className="text-4xl mb-4">🍽</p>
-              <h1 className="font-syne font-bold text-4xl sm:text-5xl text-paper mb-3">
-                Planet Mall Food
-              </h1>
+              <h1 className="font-syne font-bold text-4xl sm:text-5xl text-paper mb-3">Planet Mall Food</h1>
               <p className="text-muted font-dm-sans text-lg mb-6">
                 Order from restaurants and home cooks near you.<br/>
                 Pay securely — money released instantly on delivery.
               </p>
-              {/* Instant payment badge */}
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-dm-sans font-semibold"
                 style={{background:"rgba(42,107,69,0.15)",border:"1px solid rgba(42,107,69,0.3)",color:"#2A6B45"}}>
                 ⚡ Instant payment to sellers on delivery confirmation
