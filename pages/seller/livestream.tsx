@@ -248,12 +248,17 @@ function BroadcastStudio() {
         <div className="grid lg:grid-cols-3 h-[calc(100vh-65px)]">
 
           {/* ── Left: Video + controls ───────────────── */}
-          <div className="lg:col-span-2 flex flex-col p-6 gap-5">
+          <div className="lg:col-span-2 flex flex-col p-3 sm:p-6 gap-4">
 
-            {/* Video preview */}
-            <div className="relative rounded-2xl overflow-hidden flex-1 min-h-0"
-              style={{background:"#0D0B0A",border:"1px solid rgba(255,255,255,0.06)"}}>
-              <div ref={videoRef} className="w-full h-full" />
+            {/* Video preview — full height on mobile */}
+            <div className="relative rounded-2xl overflow-hidden"
+              style={{
+                background:"#0D0B0A",
+                border:"1px solid rgba(255,255,255,0.06)",
+                height: "calc(50vh)",
+                minHeight: "280px",
+              }}>
+              <div ref={videoRef} className="w-full h-full" style={{position:"absolute",inset:0}} />
 
               {!isLive && (
                 <div className="absolute inset-0 flex items-center justify-center">
