@@ -133,6 +133,11 @@ export default function ShopPage() {
                           </svg>
                         </button>
                       </div>
+                      {(p.views || 0) > 0 && (
+                        <p className="text-[10px] font-dm-sans mt-2" style={{color:"#8A8480"}}>
+                          👁 {(p.views || 0).toLocaleString()} {p.views === 1 ? "view" : "views"}
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}
