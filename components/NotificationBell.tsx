@@ -59,14 +59,14 @@ export default function NotificationBell() {
     <div ref={ref} className="relative">
       <button
         onClick={handleOpen}
-        className="relative p-2 text-muted hover:text-paper transition-colors"
+        className="relative flex items-center justify-center w-10 h-10 text-muted hover:text-paper transition-colors"
         aria-label="Notifications"
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
           <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/>
         </svg>
         {unread > 0 && (
-          <span className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+          <span className="absolute top-1 right-1 w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
             style={{background:"#C4531A"}}>
             {unread > 9 ? "9+" : unread}
           </span>

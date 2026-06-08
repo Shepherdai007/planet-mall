@@ -175,6 +175,15 @@ function ProductManager() {
     toast.success("Product deleted");
   }
 
+  async function handleTogglePublish(product: ProductData) {
+    const isLive = product.status === "live";
+    const newStatus = isLive ? "draft" : "live";
+    const label = isLive ? "unpublished" : "published";
+    await updateProduct(product.productId!, { status: newStatus });
+    setProducts(p => p.map(x => x.productId === product.productId ? { ...x, status: newStatus } : x));
+    toast.success(`Product ${label}`);
+  }
+
   const inp = "w-full px-4 py-2.5 rounded-xl border text-sm font-dm-sans focus:outline-none transition-colors";
   const inpStyle = { background:"#fff", borderColor:"#D4CFC6", color:"#1A1714" };
 
@@ -281,6 +290,13 @@ function ProductManager() {
                       <td className="px-6 py-4">
                         <div className="flex gap-3">
                           <button onClick={()=>openEdit(p)} className="text-xs font-medium" style={{color:"#C4531A"}}>Edit</button>
+                          <button
+                            onClick={()=>handleTogglePublish(p)}
+                            className="text-xs font-medium"
+                            style={{color: p.status === "live" ? "#D4A84B" : "#2A6B45"}}
+                          >
+                            {p.status === "live" ? "Unpublish" : "Publish"}
+                          </button>
                           <button onClick={()=>handleDelete(p.productId!)} className="text-xs font-medium" style={{color:"#8A8480"}}>Delete</button>
                         </div>
                       </td>

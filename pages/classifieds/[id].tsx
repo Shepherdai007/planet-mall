@@ -222,7 +222,7 @@ export default function ClassifiedDetailPage() {
                           style={{background:"linear-gradient(135deg,#D4A84B,#C4531A)"}}>
                           {boosting
                             ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Loading...</>
-                            : "⭐ Boost for CA$2.99"}
+                            : "⭐ Boost for CA$0.99"}
                         </button>
                       )}
                     </div>

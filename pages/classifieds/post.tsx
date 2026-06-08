@@ -33,6 +33,8 @@ export default function PostClassifiedPage() {
     country:     "Canada",
     useEscrow:   false,
     tags:        "",
+    phone:       "",
+    whatsapp:    "",
   });
 
   if (!loading && !isLoggedIn) {
@@ -93,11 +95,14 @@ export default function PostClassifiedPage() {
         useEscrow:   form.useEscrow,
         featuredUntil: null,
         tags:        form.tags.split(",").map(t=>t.trim()).filter(Boolean),
+        phone:       form.phone,
+        whatsapp:    form.whatsapp,
       });
       toast.success("Ad posted! 🎉");
       router.push(`/classifieds/${id}`);
-    } catch {
-      toast.error("Failed to post ad");
+    } catch (err: any) {
+      console.error("Post ad error:", err);
+      toast.error(err?.message || "Failed to post ad — check console");
     } finally {
       setSaving(false);
     }
@@ -263,6 +268,26 @@ export default function PostClassifiedPage() {
                 </div>
               </div>
 
+              {/* Contact info */}
+              <div className="p-6 rounded-2xl space-y-4" style={{background:"#fff",border:"1px solid #E8E2D9"}}>
+                <h2 className="font-syne font-bold text-lg" style={{color:"#1A1714"}}>Contact information</h2>
+                <p className="text-xs font-dm-sans" style={{color:"#8A8480"}}>Let buyers know how to reach you directly.</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold font-syne mb-1.5" style={{color:"#1A1714"}}>Phone number</label>
+                    <input className={inp} style={inpStyle} type="tel" value={form.phone} onChange={e=>up("phone",e.target.value)}
+                      placeholder="+1 (416) 000-0000"
+                      onFocus={e=>{e.target.style.borderColor="#C4531A"}} onBlur={e=>{e.target.style.borderColor="#D4CFC6"}} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold font-syne mb-1.5" style={{color:"#1A1714"}}>WhatsApp (optional)</label>
+                    <input className={inp} style={inpStyle} type="tel" value={form.whatsapp} onChange={e=>up("whatsapp",e.target.value)}
+                      placeholder="+1 (416) 000-0000"
+                      onFocus={e=>{e.target.style.borderColor="#C4531A"}} onBlur={e=>{e.target.style.borderColor="#D4CFC6"}} />
+                  </div>
+                </div>
+              </div>
+
               {/* Escrow option */}
               <div className="p-5 rounded-2xl" style={{background:"rgba(42,107,69,0.06)",border:"1px solid rgba(42,107,69,0.2)"}}>
                 <label className="flex items-start gap-3 cursor-pointer">
@@ -287,7 +312,7 @@ export default function PostClassifiedPage() {
                   : "Post ad for free →"}
               </button>
               <p className="text-xs text-center font-dm-sans" style={{color:"#8A8480"}}>
-                Free listing for 30 days. Boost to featured for CA$2.99.
+                Free listing for 30 days. Boost to featured for CA$0.99.
               </p>
             </form>
           </div>

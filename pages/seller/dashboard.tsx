@@ -28,10 +28,11 @@ export default function DashboardPage() {
 function Dashboard() {
   const { user, userDoc } = useAuth();
   const router = useRouter();
-  const [shop,     setShop]     = useState<ShopData|null>(null);
-  const [products, setProducts] = useState<ProductData[]>([]);
-  const [orders,   setOrders]   = useState<any[]>([]);
-  const [loading,  setLoading]  = useState(true);
+  const [shop,        setShop]        = useState<ShopData|null>(null);
+  const [products,    setProducts]    = useState<ProductData[]>([]);
+  const [orders,      setOrders]      = useState<any[]>([]);
+  const [loading,     setLoading]     = useState(true);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -104,9 +105,30 @@ function Dashboard() {
               style={{background:"#C4531A"}}>
               + Add product
             </Link>
-            <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-              style={{background:"#C4531A20",color:"#C4531A"}}>
-              {userDoc?.displayName?.[0]?.toUpperCase()||"S"}
+            <div className="relative">
+              <button
+                onClick={() => setProfileOpen(v => !v)}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
+                style={{background:"#C4531A20",color:"#C4531A"}}>
+                {userDoc?.displayName?.[0]?.toUpperCase()||"S"}
+              </button>
+              {profileOpen && (
+                <div className="absolute right-0 top-full mt-2 w-48 rounded-xl shadow-xl overflow-hidden z-50"
+                  style={{background:"#1A1714",border:"1px solid rgba(255,255,255,0.1)"}}>
+                  <Link href="/" className="block px-4 py-2.5 text-sm font-dm-sans hover:bg-white/5"
+                    style={{color:"#F2EDE4"}} onClick={() => setProfileOpen(false)}>
+                    🏠 Back to Planet Mall
+                  </Link>
+                  <Link href="/profile" className="block px-4 py-2.5 text-sm font-dm-sans hover:bg-white/5"
+                    style={{color:"#F2EDE4"}} onClick={() => setProfileOpen(false)}>
+                    👤 Profile
+                  </Link>
+                  <button onClick={async () => { await import("@/lib/auth").then(m => m.logout()); router.push("/"); }}
+                    className="w-full text-left px-4 py-2.5 text-sm font-dm-sans hover:bg-white/5 text-red-400">
+                    Sign out
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

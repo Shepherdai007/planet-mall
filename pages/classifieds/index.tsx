@@ -208,11 +208,11 @@ function ClassifiedCard({ listing }: { listing: Classified }) {
             : listing.priceType === "contact" ? "Contact for price"
             : `${formatCurrency(listing.price, "CAD")}${listing.priceType === "negotiable" ? " (OBO)" : ""}`}
         </p>
-        <div className="flex items-center justify-between mt-1">
-          <p className="text-[10px] font-dm-sans" style={{color:"#8A8480"}}>
+        <div className="flex items-center justify-between gap-2 mt-1">
+          <p className="text-[10px] font-dm-sans truncate capitalize" style={{color:"#8A8480"}}>
             📍 {listing.city}
           </p>
-          <p className="text-[10px] font-dm-sans" style={{color:"#8A8480"}}>
+          <p className="text-[10px] font-dm-sans flex-shrink-0" style={{color:"#8A8480"}}>
             {timeAgo(listing.createdAt as any)}
           </p>
         </div>

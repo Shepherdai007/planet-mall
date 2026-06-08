@@ -25,7 +25,7 @@ const PLANS = [
       "Standard checkout via Stripe",
       "Basic dashboard analytics",
       "Planet Mall branding on store",
-      "CA$1 classifieds listing fee",
+      "Free classifieds listings",
     ],
     cta:      "Get started free",
     planKey:  null,
@@ -87,21 +87,28 @@ export default function PricingPage() {
   const [loading,  setLoading]  = useState<string | null>(null);
 
   async function handleUpgrade(planKey: string | null) {
-    if (!planKey) { router.push("/auth/signup"); return; }
+    if (!planKey) {
+      if (user) { toast("You already have a free account!"); return; }
+      router.push("/auth/signup");
+      return;
+    }
     if (!user) { router.push("/auth/login?redirect=/pricing"); return; }
 
     setLoading(planKey);
     try {
       const actualPlan = yearly && planKey === "premium_monthly" ? "premium_yearly" : planKey;
-      const res  = await fetch("/api/stripe/create-checkout", {
+      const res = await fetch("/api/stripe/create-checkout", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ plan: actualPlan, userId: user.uid, email: user.email }),
       });
       const data = await res.json();
+      console.log("Stripe response:", data);
       if (data.error) throw new Error(data.error);
+      if (!data.url) throw new Error("No checkout URL returned");
       window.location.href = data.url;
     } catch (err: any) {
+      console.error("Checkout error:", err);
       toast.error(err.message || "Failed to start checkout");
     } finally {
       setLoading(null);
@@ -203,8 +210,8 @@ export default function PricingPage() {
                     </ul>
 
                     <button
-                      onClick={() => !plan.planKey ? router.push("/auth/signup") : handleUpgrade(plan.planKey)}
-                      disabled={isCurrentPlan || (plan.planKey !== null && !!loading)}
+                      onClick={() => handleUpgrade(plan.planKey)}
+                      disabled={isCurrentPlan || (!!plan.planKey && loading === plan.planKey)}
                       className="w-full py-3.5 rounded-xl text-sm font-dm-sans font-semibold transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                       style={{
                         background: isCurrentPlan
@@ -215,9 +222,10 @@ export default function PricingPage() {
                         color: isCurrentPlan ? "#2A6B45" : "#F2EDE4",
                         border: !(plan as any).featured && !isCurrentPlan ? "1px solid rgba(255,255,255,0.1)" : "none",
                       }}>
-                      {loading === plan.planKey ? (
+                      {!!plan.planKey && loading === plan.planKey ? (
                         <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Redirecting...</>
-                      ) : isCurrentPlan ? "✓ Current plan" : plan.cta}                    </button>
+                      ) : isCurrentPlan ? "✓ Current plan" : plan.cta}
+                    </button>
                   </div>
                 );
               })}

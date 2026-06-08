@@ -4,7 +4,7 @@ const withPWA = require("next-pwa")({
   dest: "public",
   register: true,
   skipWaiting: true,
-  disable: process.env.NODE_ENV === "development",
+  disable: true,
 });
 
 const nextConfig = {
@@ -12,7 +12,7 @@ const nextConfig = {
   images: {
     domains: [
       "firebasestorage.googleapis.com",
-      "lh3.googleusercontent.com", // Google profile photos
+      "lh3.googleusercontent.com",
     ],
   },
 };

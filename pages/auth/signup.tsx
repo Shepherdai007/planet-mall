@@ -102,7 +102,7 @@ export default function SignupPage() {
           <source src="/auth-bg2.mp4" type="video/mp4" />
         </video>
         <div className="absolute inset-0" style={{background:"rgba(10,9,8,0.75)",zIndex:1}} />
-        <div className="w-full max-w-[480px]">
+        <div className="w-full max-w-[480px]" style={{position:"relative",zIndex:2}}>
 
           {/* Logo */}
           <div className="flex items-center gap-2.5 mb-10 justify-center">

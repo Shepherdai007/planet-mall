@@ -28,7 +28,7 @@ function useCounter(target: number, duration = 2000) {
 
 // ── Live ticker items ─────────────────────────────────────────────
 const TICKER_ITEMS = [
-  "◆ 12,400+ sellers live",
+  "◆ 25+ sellers live",
   "◆ Powered by Stripe — all major cards accepted",
   "◆ AI Store Builder for Premium",
   "◆ Livestream shopping now live",
@@ -38,10 +38,10 @@ const TICKER_ITEMS = [
 ];
 
 export default function LandingPage() {
-  const { isLoggedIn, isSeller } = useAuth();
-  const sellers  = useCounter(12400);
-  const products = useCounter(89000);
-  const countries = useCounter(14);
+  const { isLoggedIn, isSeller, isPremium, isBusiness } = useAuth();
+  const sellers  = useCounter(25);
+  const products = useCounter(120);
+  const countries = useCounter(5);
 
   return (
     <>
@@ -353,46 +353,60 @@ export default function LandingPage() {
             </div>
 
             <div className="grid md:grid-cols-3 gap-6">
-              {PLANS.map((plan) => (
-                <div
-                  key={plan.name}
-                  className={`relative p-8 rounded-2xl border transition-all ${
-                    plan.featured
-                      ? "bg-rust/5 border-rust/40 ring-1 ring-rust/20"
-                      : "bg-white/[0.03] border-white/[0.06]"
-                  }`}
-                >
-                  {plan.featured && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-rust text-white text-xs font-bold rounded-full">
-                      Most Popular
-                    </span>
-                  )}
-                  <p className="font-syne font-bold text-xl text-paper mb-1">{plan.name}</p>
-                  <p className="text-3xl font-syne font-bold text-paper mb-1">
-                    {plan.price}
-                    {plan.period && <span className="text-sm text-muted font-normal">/{plan.period}</span>}
-                  </p>
-                  <p className="text-xs text-muted font-dm-sans mb-6">{plan.subtitle}</p>
-                  <ul className="space-y-2.5 mb-8">
-                    {plan.features.map((f) => (
-                      <li key={f} className="flex items-start gap-2 text-sm font-dm-sans text-paper/70">
-                        <span className="text-green mt-0.5 shrink-0">✓</span>
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                  <Link
-                    href={`/auth/signup?plan=${plan.id}`}
-                    className={`block text-center py-3 rounded-full text-sm font-dm-sans font-semibold transition-all ${
+              {PLANS.map((plan) => {
+                const isCurrentPlan =
+                  (plan.id === "free" && !isPremium && !isBusiness) ||
+                  (plan.id === "premium" && isPremium && !isBusiness) ||
+                  (plan.id === "business" && isBusiness);
+                return (
+                  <div
+                    key={plan.name}
+                    className={`relative p-8 rounded-2xl border transition-all ${
                       plan.featured
-                        ? "bg-rust text-white hover:bg-rust/90"
-                        : "border border-white/15 text-paper hover:border-white/30 hover:bg-white/5"
+                        ? "bg-rust/5 border-rust/40 ring-1 ring-rust/20"
+                        : "bg-white/[0.03] border-white/[0.06]"
                     }`}
                   >
-                    {plan.cta}
-                  </Link>
-                </div>
-              ))}
+                    {plan.featured && (
+                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-rust text-white text-xs font-bold rounded-full">
+                        Most Popular
+                      </span>
+                    )}
+                    {isCurrentPlan && (
+                      <span className="absolute -top-3 right-6 px-3 py-1 text-white text-xs font-bold rounded-full"
+                        style={{background:"#2A6B45"}}>
+                        Current plan
+                      </span>
+                    )}
+                    <p className="font-syne font-bold text-xl text-paper mb-1">{plan.name}</p>
+                    <p className="text-3xl font-syne font-bold text-paper mb-1">
+                      {plan.price}
+                      {plan.period && <span className="text-sm text-muted font-normal">/{plan.period}</span>}
+                    </p>
+                    <p className="text-xs text-muted font-dm-sans mb-6">{plan.subtitle}</p>
+                    <ul className="space-y-2.5 mb-8">
+                      {plan.features.map((f) => (
+                        <li key={f} className="flex items-start gap-2 text-sm font-dm-sans text-paper/70">
+                          <span className="text-green mt-0.5 shrink-0">✓</span>
+                          {f}
+                        </li>
+                      ))}
+                    </ul>
+                    <Link
+                      href="/pricing"
+                      className={`block text-center py-3 rounded-full text-sm font-dm-sans font-semibold transition-all ${
+                        isCurrentPlan
+                          ? "border border-white/10 text-green cursor-default"
+                          : plan.featured
+                            ? "bg-rust text-white hover:bg-rust/90"
+                            : "border border-white/15 text-paper hover:border-white/30 hover:bg-white/5"
+                      }`}
+                    >
+                      {isCurrentPlan ? "✓ Current plan" : plan.cta}
+                    </Link>
+                  </div>
+                );
+              })}
             </div>
           </section>
 
@@ -411,6 +425,51 @@ export default function LandingPage() {
               >
                 Get started for free →
               </Link>
+            </div>
+          </section>
+
+          {/* ── APP DOWNLOAD ──────────────────────────────────── */}
+          <section className="py-20 px-4">
+            <div className="max-w-4xl mx-auto rounded-3xl p-10 flex flex-col md:flex-row items-center justify-between gap-8"
+              style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)"}}>
+              <div>
+                <p className="text-rust text-xs font-dm-sans uppercase tracking-[0.2em] mb-3">Mobile app</p>
+                <h2 className="font-syne font-bold text-3xl sm:text-4xl text-paper mb-3">
+                  Shop on the go
+                </h2>
+                <p className="text-muted font-dm-sans text-sm leading-relaxed max-w-sm">
+                  The Planet Mall app is coming soon. Buy, sell, and go live from anywhere. Get notified when we launch!
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 flex-shrink-0">
+                {/* Google Play — mock */}
+                <a href="#" onClick={e => { e.preventDefault(); }}
+                  className="flex items-center gap-3 px-5 py-3.5 rounded-2xl transition-all hover:scale-105"
+                  style={{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)"}}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                    <path fill="#EA4335" d="M12.954 11.557L3.27 1.292A2 2 0 015 1l10.166 5.873-2.212 4.684z"/>
+                    <path fill="#FBBC05" d="M21.784 10.336l-2.582-1.49-2.396 2.654 2.396 2.654 2.618-1.51a1.5 1.5 0 00-.036-2.308z"/>
+                    <path fill="#34A853" d="M3.27 22.708l9.684-10.265 2.212 2.212L5 23.001a2 2 0 01-1.73-.293z"/>
+                    <path fill="#4285F4" d="M3.27 1.292C2.51 1.7 2 2.51 2 3.5v17c0 .99.51 1.8 1.27 2.208l10.37-10.985-10.37-11.43z"/>
+                  </svg>
+                  <div>
+                    <p className="text-[10px] text-muted font-dm-sans">Coming soon on</p>
+                    <p className="text-sm font-syne font-bold text-paper">Google Play</p>
+                  </div>
+                </a>
+                {/* App Store — mock */}
+                <a href="#" onClick={e => { e.preventDefault(); }}
+                  className="flex items-center gap-3 px-5 py-3.5 rounded-2xl transition-all hover:scale-105"
+                  style={{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)"}}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white">
+                    <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                  </svg>
+                  <div>
+                    <p className="text-[10px] text-muted font-dm-sans">Coming soon on</p>
+                    <p className="text-sm font-syne font-bold text-paper">App Store</p>
+                  </div>
+                </a>
+              </div>
             </div>
           </section>
 

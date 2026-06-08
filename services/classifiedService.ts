@@ -35,6 +35,8 @@ export interface Classified {
   views:        number;
   useEscrow:    boolean;     // seller opted into Planet Mall escrow
   tags:         string[];
+  phone?:       string;      // seller contact phone
+  whatsapp?:    string;      // seller WhatsApp number
   createdAt:    unknown;
   expiresAt:    unknown;     // listings expire after 30 days
 }

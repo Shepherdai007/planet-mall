@@ -63,9 +63,23 @@ export default function AIConcierge() {
       const res = await fetch("/api/ai/concierge", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ messages: newMessages }),
+        body:    JSON.stringify({ messages: newMessages, userId: userDoc?.uid }),
       });
       const data = await res.json();
+
+      if (res.status === 403 && data.error === "upgrade") {
+        setMessages(m => [...m, {
+          role: "assistant",
+          content: data.message || "Upgrade to Premium to use the AI Concierge! 🚀",
+        }]);
+        // Add upgrade button message
+        setMessages(m => [...m, {
+          role: "assistant",
+          content: "👉 [Upgrade to Premium — CA$8/month](/pricing)",
+        }]);
+        return;
+      }
+
       setMessages(m => [...m, { role: "assistant", content: data.text || "Sorry, I couldn't process that. Try again!" }]);
     } catch {
       setMessages(m => [...m, { role: "assistant", content: "I'm having trouble connecting right now. Please try again in a moment." }]);
@@ -137,7 +151,12 @@ export default function AIConcierge() {
                       ? "20px 20px 4px 20px"
                       : "20px 20px 20px 4px",
                   }}>
-                  {msg.content}
+                  {msg.content.includes("[Upgrade to Premium") ? (
+                    <a href="/pricing" className="flex items-center gap-2 px-3 py-2 rounded-xl font-semibold text-white transition-all hover:opacity-90"
+                      style={{background:"linear-gradient(135deg,#C4531A,#D4A84B)"}}>
+                      ✦ Upgrade to Premium — CA$8/month
+                    </a>
+                  ) : msg.content}
                 </div>
               </div>
             ))}

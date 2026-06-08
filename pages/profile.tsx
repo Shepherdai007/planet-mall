@@ -49,8 +49,20 @@ export default function ProfilePage() {
       await updateProfile(user, { photoURL: url });
       await updateDoc(doc(db, "users", user.uid), { photoURL: url });
       toast.success("Photo updated!");
-    } catch { toast.error("Upload failed"); }
-    finally { setUploading(false); }
+      // Force page reload so navbar picks up new photo
+      window.location.reload();
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      // If we got a URL it actually succeeded — ignore the error
+      if (user.photoURL) {
+        toast.success("Photo updated!");
+        window.location.reload();
+      } else {
+        toast.error("Upload failed — check Firebase Storage rules");
+      }
+    } finally {
+      setUploading(false);
+    }
   }
 
   const planLabel = isBusiness ? "Business" : isPremium ? "Premium" : "Free";
@@ -66,20 +78,35 @@ export default function ProfilePage() {
 
             {/* Avatar */}
             <div className="flex items-center gap-6 mb-10">
-              <label className="relative cursor-pointer group">
-                <div className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center text-2xl font-bold"
+              <label className="relative cursor-pointer group" title="Click to change photo">
+                <div className="w-24 h-24 rounded-full overflow-hidden flex items-center justify-center text-3xl font-bold border-2 border-rust/30"
                   style={{background:"rgba(196,83,26,0.15)",color:"#C4531A"}}>
-                  {userDoc?.photoURL
-                    ? <img src={userDoc.photoURL} alt="" className="w-full h-full object-cover" />
+                  {user?.photoURL || userDoc?.photoURL
+                    ? <img src={user?.photoURL || userDoc?.photoURL} alt="" className="w-full h-full object-cover" />
                     : userDoc?.displayName?.[0]?.toUpperCase() || "U"}
                 </div>
-                <div className="absolute inset-0 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                  style={{background:"rgba(0,0,0,0.5)"}}>
-                  <span className="text-white text-xs font-dm-sans">
-                    {uploading ? "..." : "Change"}
-                  </span>
+                {/* Camera overlay */}
+                <div className="absolute inset-0 rounded-full flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{background:"rgba(0,0,0,0.6)"}}>
+                  {uploading
+                    ? <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    : <>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                          <circle cx="12" cy="13" r="4"/>
+                        </svg>
+                        <span className="text-white text-[10px] font-dm-sans mt-1">Change</span>
+                      </>}
                 </div>
-                <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+                {/* Camera badge always visible */}
+                <div className="absolute bottom-0 right-0 w-7 h-7 rounded-full flex items-center justify-center border-2 border-white"
+                  style={{background:"#C4531A"}}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                    <circle cx="12" cy="13" r="4"/>
+                  </svg>
+                </div>
+                <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
               </label>
               <div>
                 <p className="font-syne font-bold text-xl text-paper">{userDoc?.displayName || "Your name"}</p>

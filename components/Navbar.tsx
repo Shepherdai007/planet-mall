@@ -77,8 +77,8 @@ export default function Navbar() {
               <div className="relative">
                 <button onClick={() => setProfileOpen(v => !v)}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 hover:border-white/20 transition-colors">
-                  {userDoc?.photoURL
-                    ? <img src={userDoc.photoURL} alt="" className="w-5 h-5 rounded-full object-cover" />
+                  {user?.photoURL || userDoc?.photoURL
+                    ? <img src={user?.photoURL || userDoc?.photoURL || ""} alt="" className="w-5 h-5 rounded-full object-cover" />
                     : <span className="w-5 h-5 bg-rust/20 text-rust rounded-full flex items-center justify-center text-xs font-bold">
                         {userDoc?.displayName?.[0]?.toUpperCase() || "U"}
                       </span>}
