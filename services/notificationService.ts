@@ -49,3 +49,10 @@ export function listenNotifications(
     }
   );
 }
+
+// ── Mark all notifications as read ───────────────────────────────
+export async function markAllNotificationsRead(userId: string, notifIds: string[]): Promise<void> {
+  await Promise.all(
+    notifIds.map(id => updateDoc(doc(db, "notifications", userId, "items", id), { read: true }))
+  );
+}
