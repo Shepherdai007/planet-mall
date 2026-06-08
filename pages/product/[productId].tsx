@@ -7,7 +7,7 @@ import Head              from "next/head";
 import Link              from "next/link";
 import { useRouter }     from "next/router";
 import { useState, useEffect } from "react";
-import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { doc, getDoc, collection, query, where, getDocs, updateDoc, increment } from "firebase/firestore";
 import { db }            from "@/lib/firebase";
 import Layout            from "@/components/Layout";
 import { useCart }       from "@/context/CartContext";
@@ -44,6 +44,8 @@ export default function ProductPage() {
       const sq = await getDocs(query(collection(db,"shops"), where("shopId","==",p.shopId)));
       if (!sq.empty) setShop(sq.docs[0].data() as ShopData);
       setLoading(false);
+      // Increment view count (fire and forget)
+      updateDoc(doc(db,"products",productId as string), { views: increment(1) }).catch(()=>{});
     }
     load();
   }, [productId]);

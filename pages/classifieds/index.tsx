@@ -222,6 +222,11 @@ function ClassifiedCard({ listing }: { listing: Classified }) {
             {CONDITION_LABELS[listing.condition]}
           </span>
         )}
+        {(listing.views || 0) > 0 && (
+          <p className="text-[10px] font-dm-sans mt-1.5" style={{color:"#8A8480"}}>
+            👁 {(listing.views || 0).toLocaleString()} {listing.views === 1 ? "view" : "views"}
+          </p>
+        )}
       </div>
     </Link>
   );
