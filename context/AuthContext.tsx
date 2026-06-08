@@ -32,6 +32,9 @@ export interface UserDoc {
 
 // ── Subscription document shape ───────────────────────────────────
 export interface Subscription {
+  cancelAtPeriodEnd?: boolean;
+  currentPeriodEnd?:  any;
+  stripeSubscriptionId?: string;
   uid:    string;
   plan:   "free" | "premium" | "business";
   status: "active" | "cancelled" | "expired";

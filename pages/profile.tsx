@@ -14,11 +14,12 @@ import { useAuth }    from "@/context/AuthContext";
 import { auth, db, storage } from "@/lib/firebase";
 
 export default function ProfilePage() {
-  const { user, userDoc, isLoggedIn, loading, isPremium, isBusiness } = useAuth();
+  const { user, userDoc, isLoggedIn, loading, isPremium, isBusiness, subscription } = useAuth();
   const router = useRouter();
   const [displayName, setDisplayName] = useState(userDoc?.displayName || "");
   const [saving,      setSaving]      = useState(false);
   const [uploading,   setUploading]   = useState(false);
+  const [cancelling,  setCancelling]  = useState(false);
 
   if (!loading && !isLoggedIn) {
     router.push("/auth/login?redirect=/profile");
@@ -62,6 +63,26 @@ export default function ProfilePage() {
       }
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function handleCancelSubscription() {
+    if (!user) return;
+    if (!confirm("Cancel your subscription? You'll keep access until the end of your billing period.")) return;
+    setCancelling(true);
+    try {
+      const res = await fetch("/api/stripe/cancel-subscription", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ userId: user.uid }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      toast.success("Subscription cancelled — you keep access until your billing period ends.");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to cancel subscription");
+    } finally {
+      setCancelling(false);
     }
   }
 
@@ -146,6 +167,70 @@ export default function ProfilePage() {
                 {saving ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</> : "Save changes"}
               </button>
             </form>
+
+            {/* Subscription management */}
+            {(isPremium || isBusiness) && (
+              <div className="mb-8 p-5 rounded-2xl border" style={{background:"rgba(255,255,255,0.02)",borderColor:"rgba(255,255,255,0.08)"}}>
+                <p className="font-syne font-bold text-paper text-base mb-4">Subscription</p>
+
+                {/* Plan badge */}
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <span className="inline-block px-3 py-1 rounded-full text-xs font-bold font-dm-sans mb-1"
+                      style={{background:`${planColor}20`,color:planColor}}>
+                      {planLabel} plan
+                    </span>
+                    {subscription?.cancelAtPeriodEnd ? (
+                      <p className="text-xs font-dm-sans mt-1" style={{color:"#D4A84B"}}>
+                        ⚠️ Cancels at end of billing period
+                        {subscription?.currentPeriodEnd && (
+                          <> — {new Date(subscription.currentPeriodEnd?.seconds
+                            ? subscription.currentPeriodEnd.seconds * 1000
+                            : subscription.currentPeriodEnd).toLocaleDateString("en-CA", {month:"long",day:"numeric",year:"numeric"})}</>
+                        )}
+                      </p>
+                    ) : (
+                      <p className="text-xs font-dm-sans text-muted mt-1">
+                        Active · renews automatically
+                        {subscription?.currentPeriodEnd && (
+                          <> on {new Date(subscription.currentPeriodEnd?.seconds
+                            ? subscription.currentPeriodEnd.seconds * 1000
+                            : subscription.currentPeriodEnd).toLocaleDateString("en-CA", {month:"long",day:"numeric",year:"numeric"})}</>
+                        )}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex flex-col gap-2">
+                  {!subscription?.cancelAtPeriodEnd ? (
+                    <button
+                      onClick={handleCancelSubscription}
+                      disabled={cancelling}
+                      className="w-full py-3 rounded-xl text-sm font-dm-sans font-semibold transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                      style={{background:"rgba(196,83,26,0.1)",color:"#C4531A",border:"1px solid rgba(196,83,26,0.2)"}}>
+                      {cancelling
+                        ? <><span className="w-4 h-4 border-2 border-rust/30 border-t-rust rounded-full animate-spin"/>Cancelling...</>
+                        : "Cancel subscription"}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => router.push("/pricing")}
+                      className="w-full py-3 rounded-xl text-sm font-dm-sans font-semibold transition-all"
+                      style={{background:"rgba(42,107,69,0.1)",color:"#2A6B45",border:"1px solid rgba(42,107,69,0.2)"}}>
+                      Reactivate subscription
+                    </button>
+                  )}
+                  <button
+                    onClick={() => router.push("/pricing")}
+                    className="w-full py-3 rounded-xl text-sm font-dm-sans font-medium transition-all"
+                    style={{background:"rgba(255,255,255,0.03)",color:"#8A8480",border:"1px solid rgba(255,255,255,0.06)"}}>
+                    Change plan
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Quick links */}
             <div className="space-y-2">
