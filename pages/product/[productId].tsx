@@ -72,14 +72,15 @@ export default function ProductPage({ ogData }: { ogData?: any }) {
   }
 
   async function handleMessageSeller() {
-    if (!user || !userDoc) { router.push("/auth/login"); return; }
+    if (!user) { router.push("/auth/login"); return; }
     if (!shop) return;
     setMessaging(true);
     try {
       const convId = await getOrCreateConversation(
-        user.uid, userDoc.displayName, userDoc.photoURL || "",
-        shop.ownerId, shop.name, shop.logoURL,
-        shop.shopId!, shop.name, shop.logoURL
+        user.uid, userDoc?.displayName || user.displayName || "User", userDoc?.photoURL || user.photoURL || "",
+        shop.ownerId!, shop.name, shop.logoURL || "",
+        shop.shopId!, shop.name, shop.logoURL || "",
+        product!.productId!, product!.name  // per-product conversation
       );
       router.push(`/messages/${convId}`);
     } catch(e) {

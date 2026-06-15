@@ -118,7 +118,7 @@ export default function ShopPage() {
                   <span>{shop.followers||0} followers</span>
                 </div>
                 <div className="mt-3">
-                  <FollowButton shopId={shop.shopId!} shopName={shop.name} />
+                  <FollowButton shopId={shop.shopId!} shopName={shop.name} ownerId={shop.ownerId} />
                 </div>
               </div>
             </div>

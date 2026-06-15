@@ -1,7 +1,5 @@
 // components/FollowButton.tsx
 // ─── FOLLOW / SUBSCRIBE BUTTON ───────────────────────────────────
-// Shows on shop pages and product pages.
-// When seller goes live, all followers get instant notification.
 
 "use client";
 import { useState, useEffect } from "react";
@@ -13,10 +11,11 @@ import toast from "react-hot-toast";
 interface Props {
   shopId:   string;
   shopName: string;
+  ownerId?: string;  // hide button if current user is the owner
   compact?: boolean;
 }
 
-export default function FollowButton({ shopId, shopName, compact = false }: Props) {
+export default function FollowButton({ shopId, shopName, ownerId, compact = false }: Props) {
   const { user, userDoc, isLoggedIn } = useAuth();
   const router   = useRouter();
   const [following, setFollowing] = useState(false);
@@ -31,11 +30,11 @@ export default function FollowButton({ shopId, shopName, compact = false }: Prop
     });
   }, [user, shopId]);
 
+  // Hide if current user is the shop owner
+  if (user && ownerId && user.uid === ownerId) return null;
+
   async function handleToggle() {
-    if (!isLoggedIn) {
-      router.push("/auth/login");
-      return;
-    }
+    if (!isLoggedIn) { router.push("/auth/login"); return; }
     if (!user || !userDoc) return;
     setLoading(true);
     try {
@@ -56,6 +55,7 @@ export default function FollowButton({ shopId, shopName, compact = false }: Prop
   }
 
   if (!checked) return null;
+  if (!isLoggedIn && compact) return null;
 
   if (compact) {
     return (
@@ -68,22 +68,16 @@ export default function FollowButton({ shopId, shopName, compact = false }: Prop
   }
 
   return (
-    <button
-      onClick={handleToggle}
-      disabled={loading}
+    <button onClick={handleToggle} disabled={loading}
       className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-dm-sans font-semibold transition-all disabled:opacity-50"
       style={{
         background: following ? "rgba(42,107,69,0.1)" : "rgba(255,255,255,0.06)",
         border:     `1px solid ${following ? "rgba(42,107,69,0.3)" : "rgba(255,255,255,0.1)"}`,
         color:      following ? "#2A6B45" : "#F2EDE4",
       }}>
-      {loading ? (
-        <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-      ) : following ? (
-        <>✓ Following</>
-      ) : (
-        <>🔔 Follow</>
-      )}
+      {loading
+        ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+        : following ? <>✓ Following</> : <>🔔 Follow</>}
     </button>
   );
 }
