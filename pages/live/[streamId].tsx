@@ -212,6 +212,7 @@ export default function WatchPage() {
               text={`🔴 ${stream.shopName} is live on Planet Mall — "${stream.title}"`}
               variant="button"
             />
+            {/* Mobile share — also shown as floating button on video */}
           </div>
         </div>
 
@@ -266,6 +267,28 @@ export default function WatchPage() {
                 className="absolute bottom-6 right-4 w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-lg transition-all active:scale-90"
                 style={{background:"rgba(0,0,0,0.6)",border:"1px solid rgba(255,255,255,0.1)"}}>
                 ❤️
+              </button>
+            )}
+
+            {/* Floating share button — mobile visible */}
+            {!isEnded && (
+              <button
+                onClick={() => {
+                  const url = window.location.href;
+                  const text = `🔴 ${stream.shopName} is live on Planet Mall — "${stream.title}" ${url}`;
+                  if (navigator.share) {
+                    navigator.share({ title: stream.title, text, url });
+                  } else {
+                    navigator.clipboard.writeText(url);
+                    toast.success("Link copied!");
+                  }
+                }}
+                className="absolute top-4 right-4 sm:hidden w-10 h-10 rounded-full flex items-center justify-center shadow-lg"
+                style={{background:"rgba(0,0,0,0.7)",border:"1px solid rgba(255,255,255,0.2)"}}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                  <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                </svg>
               </button>
             )}
           </div>
