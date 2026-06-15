@@ -239,11 +239,11 @@ function BroadcastStudio() {
               </div>
             )}
             <div className="flex items-center gap-3">
-              {activeStream && (
+              {streamId && (
                 <ShareButton
-                  url={typeof window !== "undefined" ? `${window.location.origin}/live/${activeStream.id}` : ""}
-                  title={activeStream.title}
-                  text={`🔴 ${shop?.name} is live on Planet Mall — "${activeStream.title}"`}
+                  url={typeof window !== "undefined" ? `${window.location.origin}/live/${streamId}` : ""}
+                  title={title || "Live Stream"}
+                  text={`🔴 ${shop?.name} is live on Planet Mall — "${title}"`}
                   variant="button"
                 />
               )}
