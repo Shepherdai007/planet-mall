@@ -22,7 +22,7 @@ import type { ProductData } from "@/services/productService";
 import type { ShopData }    from "@/services/shopService";
 import toast from "react-hot-toast";
 
-export default function ProductPage() {
+export default function ProductPage({ ogData }: { ogData?: any }) {
   const router = useRouter();
   const { productId } = router.query;
   const { addItem, openCart } = useCart();
@@ -96,24 +96,24 @@ export default function ProductPage() {
   return (
     <>
       <Head>
-        <title>{product.name} — Planet Mall</title>
-        <meta name="description" content={`${product.currency || "CAD"} ${product.price?.toLocaleString()} · ${product.description?.slice(0,120)}...`} />
+        <title>{ogData?.title || product.name} — Planet Mall</title>
+        <meta name="description" content={ogData?.description || product.description?.slice(0,150)} />
 
-        {/* Open Graph — WhatsApp, Facebook, Telegram */}
+        {/* Open Graph */}
         <meta property="og:type"         content="product" />
         <meta property="og:site_name"    content="Planet Mall" />
-        <meta property="og:title"        content={`${product.name} — ${product.currency || "CAD"} ${product.price?.toLocaleString()}`} />
-        <meta property="og:description"  content={product.description?.slice(0,150) || "Shop on Planet Mall"} />
-        <meta property="og:image"        content={product.images?.[0] || "https://planetmallshop.com/logo.jpg"} />
+        <meta property="og:title"        content={ogData?.title || `${product.name} — ${product.currency || "CAD"} ${product.price?.toLocaleString()}`} />
+        <meta property="og:description"  content={ogData?.description || product.description?.slice(0,150)} />
+        <meta property="og:image"        content={ogData?.image || product.images?.[0] || "https://planetmallshop.com/logo.jpg"} />
         <meta property="og:image:width"  content="1200" />
         <meta property="og:image:height" content="630" />
-        <meta property="og:url"          content={`https://planetmallshop.com/product/${product.productId}`} />
+        <meta property="og:url"          content={ogData?.url || `https://planetmallshop.com/product/${product.productId}`} />
 
         {/* Twitter / X */}
         <meta name="twitter:card"        content="summary_large_image" />
-        <meta name="twitter:title"       content={`${product.name} — Planet Mall`} />
-        <meta name="twitter:description" content={`${product.currency || "CAD"} ${product.price?.toLocaleString()} · Shop on Planet Mall`} />
-        <meta name="twitter:image"       content={product.images?.[0] || "https://planetmallshop.com/logo.jpg"} />
+        <meta name="twitter:title"       content={ogData?.title || product.name} />
+        <meta name="twitter:description" content={ogData?.description || `${product.currency || "CAD"} ${product.price?.toLocaleString()}`} />
+        <meta name="twitter:image"       content={ogData?.image || product.images?.[0] || "https://planetmallshop.com/logo.jpg"} />
       </Head>
       <Layout>
         <div className="min-h-screen bg-void pt-8 pb-20">
@@ -250,4 +250,26 @@ export default function ProductPage() {
       </Layout>
     </>
   );
+}
+
+export async function getServerSideProps({ params }: { params: { productId: string } }) {
+  try {
+    const { adminDb } = await import("@/lib/firebase-admin");
+    const snap = await adminDb.doc(`products/${params.productId}`).get();
+    if (!snap.exists) return { props: {} };
+
+    const data = snap.data()!;
+    return {
+      props: {
+        ogData: {
+          title:       `${data.name} — ${data.currency || "CAD"} ${Number(data.price || 0).toLocaleString()}`,
+          description: (data.description || "Shop on Planet Mall").slice(0, 150),
+          image:       data.images?.[0] || "https://planetmallshop.com/logo.jpg",
+          url:         `https://planetmallshop.com/product/${params.productId}`,
+        },
+      },
+    };
+  } catch {
+    return { props: {} };
+  }
 }
