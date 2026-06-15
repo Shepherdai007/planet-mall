@@ -33,6 +33,7 @@ export default function ClassifiedsPage() {
   const [search,    setSearch]    = useState("");
   const [category,  setCategory]  = useState("All");
   const [city,      setCity]      = useState("");
+  const [todayCount, setTodayCount] = useState(0);
 
   useEffect(() => {
     load();
@@ -42,6 +43,16 @@ export default function ClassifiedsPage() {
     setLoading(true);
     const results = await getClassifieds({ category, limit: 60 });
     setListings(results);
+    // Count listings added today
+    const todayStart = new Date();
+    todayStart.setHours(0,0,0,0);
+    const count = results.filter(l => {
+      const ts = (l.createdAt as any)?.seconds
+        ? (l.createdAt as any).seconds * 1000
+        : new Date(l.createdAt as any).getTime();
+      return ts >= todayStart.getTime();
+    }).length;
+    setTodayCount(count);
     setLoading(false);
   }
 
@@ -116,17 +127,40 @@ export default function ClassifiedsPage() {
               ))}
             </div>
 
-            {/* Results count */}
+            {/* Results count + today badge */}
             <div className="flex items-center justify-between mb-5">
-              <p className="text-sm font-dm-sans" style={{color:"#8A8480"}}>
-                {filtered.length} listing{filtered.length !== 1 ? "s" : ""}
-                {category !== "All" ? ` in ${category}` : ""}
-                {city ? ` near ${city}` : ""}
-              </p>
+              <div className="flex items-center gap-3">
+                <p className="text-sm font-dm-sans" style={{color:"#8A8480"}}>
+                  {filtered.length} listing{filtered.length !== 1 ? "s" : ""}
+                  {category !== "All" ? ` in ${category}` : ""}
+                  {city ? ` near ${city}` : ""}
+                </p>
+                {todayCount > 0 && (
+                  <span className="px-2.5 py-1 rounded-full text-xs font-dm-sans font-bold"
+                    style={{background:"rgba(42,107,69,0.1)",color:"#2A6B45"}}>
+                    🔥 {todayCount} added today
+                  </span>
+                )}
+              </div>
               <Link href="/classifieds/post"
                 className="text-sm font-dm-sans font-semibold"
                 style={{color:"#C4531A"}}>
                 + Post free ad
+              </Link>
+            </div>
+
+            {/* Post FREE banner */}
+            <div className="mb-6 p-4 rounded-2xl flex items-center gap-4"
+              style={{background:"linear-gradient(135deg,rgba(196,83,26,0.08),rgba(212,168,75,0.08))",border:"1px solid rgba(196,83,26,0.15)"}}>
+              <span className="text-3xl flex-shrink-0">🎯</span>
+              <div className="flex-1 min-w-0">
+                <p className="font-dm-sans font-bold text-sm" style={{color:"#1A1714"}}>Got something to sell?</p>
+                <p className="text-xs font-dm-sans" style={{color:"#8A8480"}}>Post your first ad FREE — takes less than 2 minutes!</p>
+              </div>
+              <Link href="/classifieds/post"
+                className="flex-shrink-0 px-4 py-2 rounded-xl text-white text-xs font-dm-sans font-bold"
+                style={{background:"#C4531A"}}>
+                Post now
               </Link>
             </div>
 
@@ -170,10 +204,16 @@ export default function ClassifiedsPage() {
 
 function ClassifiedCard({ listing }: { listing: Classified }) {
   return (
-    <Link href={`/classifieds/${listing.id}`}
-      className="rounded-2xl overflow-hidden block transition-all hover:shadow-md group"
+    <div className="rounded-2xl overflow-hidden relative transition-all hover:shadow-md group"
       style={{background:"#fff",border:"1px solid #E8E2D9"}}>
 
+      {/* Heart button */}
+      <Link href={`/saved`} className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full flex items-center justify-center"
+        style={{background:"rgba(255,255,255,0.85)"}}>
+        🤍
+      </Link>
+
+      <Link href={`/classifieds/${listing.id}`} className="block">
       {/* Image */}
       <div className="h-40 overflow-hidden relative" style={{background:"#F6F1E9"}}>
         {listing.images?.[0] ? (
@@ -228,7 +268,8 @@ function ClassifiedCard({ listing }: { listing: Classified }) {
           </p>
         )}
       </div>
-    </Link>
+      </Link>
+    </div>
   );
 }
 

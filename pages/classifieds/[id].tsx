@@ -8,6 +8,8 @@ import { useEffect, useState } from "react";
 import Layout         from "@/components/Layout";
 import { useAuth }    from "@/context/AuthContext";
 import { getClassified, getClassifieds, markAsSold } from "@/services/classifiedService";
+import { saveListing, unsaveListing, listenSavedIds } from "@/services/favoritesService";
+import { getSellerRatingSummary, getSellerReviews, submitSellerRating, hasUserRatedSeller } from "@/services/sellerRatingService";
 import { formatCurrency, timeAgo }   from "@/lib/helpers";
 import { getOrCreateConversation }   from "@/services/messageService";
 import ReportButton   from "@/components/ReportButton";
@@ -33,19 +35,44 @@ export default function ClassifiedDetailPage({ ogData }: { ogData?: any }) {
   const [showMore,  setShowMore]  = useState(false);
   const [similar,   setSimilar]   = useState<Classified[]>([]);
   const [scrolled,  setScrolled]  = useState(false);
+  const [isSaved,   setIsSaved]   = useState(false);
+  const [saving,    setSavingFav] = useState(false);
+  const [ratingSum, setRatingSum] = useState<{average:number,count:number}|null>(null);
+  const [reviews,   setReviews]   = useState<any[]>([]);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [myRating,  setMyRating]  = useState(0);
+  const [myComment, setMyComment] = useState("");
+  const [submittingRating, setSubmittingRating] = useState(false);
+  const [alreadyRated, setAlreadyRated] = useState(false);
 
   useEffect(() => {
     if (!id) return;
     getClassified(id as string).then(l => {
       setListing(l);
       setLoading(false);
-      // Fetch similar listings from same category
       if (l?.category) {
         getClassifieds({ category: l.category, limit: 5 })
           .then(results => setSimilar(results.filter(r => r.id !== id)));
       }
+      if (l?.sellerId) {
+        getSellerRatingSummary(l.sellerId).then(setRatingSum);
+        getSellerReviews(l.sellerId).then(setReviews);
+      }
     });
   }, [id]);
+
+  // Listen to saved IDs
+  useEffect(() => {
+    if (!user) return;
+    const unsub = listenSavedIds(user.uid, ids => setIsSaved(ids.has(id as string)));
+    return unsub;
+  }, [user, id]);
+
+  // Check if already rated
+  useEffect(() => {
+    if (!user || !listing) return;
+    hasUserRatedSeller(listing.sellerId, user.uid).then(setAlreadyRated);
+  }, [user, listing]);
 
   // Scroll listener for sticky bar
   useEffect(() => {
@@ -53,6 +80,48 @@ export default function ClassifiedDetailPage({ ogData }: { ogData?: any }) {
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  async function handleSaveListing() {
+    if (!user) { router.push("/auth/login"); return; }
+    if (!listing) return;
+    setSavingFav(true);
+    try {
+      if (isSaved) {
+        await unsaveListing(user.uid, listing.id!);
+        toast.success("Removed from saved");
+      } else {
+        await saveListing(user.uid, {
+          id: listing.id!, title: listing.title,
+          image: listing.images?.[0] || "",
+          price: listing.price, priceType: listing.priceType,
+          currency: listing.currency || "CAD",
+          city: listing.city, category: listing.category,
+        });
+        toast.success("Saved! ❤️");
+      }
+    } catch { toast.error("Failed to save"); }
+    finally { setSavingFav(false); }
+  }
+
+  async function handleSubmitRating() {
+    if (!user || !listing || myRating === 0) return;
+    setSubmittingRating(true);
+    try {
+      await submitSellerRating(listing.sellerId, {
+        reviewerId: user.uid,
+        reviewerName: userDoc?.displayName || "Anonymous",
+        reviewerPhoto: userDoc?.photoURL || "",
+        rating: myRating,
+        comment: myComment,
+      });
+      toast.success("Rating submitted! ⭐");
+      setShowRatingModal(false);
+      setAlreadyRated(true);
+      getSellerRatingSummary(listing.sellerId).then(setRatingSum);
+      getSellerReviews(listing.sellerId).then(setReviews);
+    } catch { toast.error("Failed to submit rating"); }
+    finally { setSubmittingRating(false); }
+  }
 
   async function handleMessage() {
     if (!user || !listing) { router.push("/auth/login"); return; }
@@ -202,7 +271,7 @@ export default function ClassifiedDetailPage({ ogData }: { ogData?: any }) {
                 {/* Details */}
                 <div className="p-6 rounded-2xl" style={{background:"#fff",border:"1px solid #E8E2D9"}}>
                   <div className="flex items-start justify-between mb-4">
-                    <div>
+                    <div className="flex-1 min-w-0">
                       {listing.featured && (
                         <span className="inline-block mb-2 px-2.5 py-0.5 rounded-full text-xs font-bold font-dm-sans"
                           style={{background:"rgba(212,168,75,0.15)",color:"#D4A84B"}}>⭐ Featured</span>
@@ -212,9 +281,19 @@ export default function ClassifiedDetailPage({ ogData }: { ogData?: any }) {
                         📍 {listing.city}, {listing.province} · {timeAgo(listing.createdAt as any)} · 👁 {listing.views} views
                       </p>
                     </div>
-                    {listing.status === "sold" && (
-                      <span className="px-3 py-1 rounded-full text-sm font-bold font-dm-sans bg-red-100 text-red-600">SOLD</span>
-                    )}
+                    <div className="flex items-center gap-2 ml-4">
+                      {/* Heart / Save button */}
+                      {!isOwner && (
+                        <button onClick={handleSaveListing} disabled={saving}
+                          className="w-10 h-10 rounded-full flex items-center justify-center transition-all"
+                          style={{background: isSaved ? "rgba(196,83,26,0.1)" : "#F6F1E9",border:"1px solid #E8E2D9"}}>
+                          <span className="text-lg">{isSaved ? "❤️" : "🤍"}</span>
+                        </button>
+                      )}
+                      {listing.status === "sold" && (
+                        <span className="px-3 py-1 rounded-full text-sm font-bold font-dm-sans bg-red-100 text-red-600">SOLD</span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex gap-3 flex-wrap mb-5">
@@ -314,7 +393,7 @@ export default function ClassifiedDetailPage({ ogData }: { ogData?: any }) {
                 {/* Seller info */}
                 <div className="p-5 rounded-2xl" style={{background:"#fff",border:"1px solid #E8E2D9"}}>
                   <p className="text-xs font-dm-sans font-semibold uppercase tracking-wide mb-3" style={{color:"#8A8480"}}>Seller</p>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center font-bold"
                       style={{background:"rgba(196,83,26,0.15)",color:"#C4531A"}}>
                       {listing.sellerPhoto
@@ -326,6 +405,33 @@ export default function ClassifiedDetailPage({ ogData }: { ogData?: any }) {
                       <p className="text-xs font-dm-sans" style={{color:"#8A8480"}}>Member of Planet Mall</p>
                     </div>
                   </div>
+
+                  {/* Star rating summary */}
+                  {ratingSum && ratingSum.count > 0 ? (
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="flex">
+                        {[1,2,3,4,5].map(s => (
+                          <span key={s} className="text-sm">{s <= Math.round(ratingSum.average) ? "⭐" : "☆"}</span>
+                        ))}
+                      </div>
+                      <span className="text-xs font-dm-sans font-semibold" style={{color:"#1A1714"}}>{ratingSum.average}</span>
+                      <span className="text-xs font-dm-sans" style={{color:"#8A8480"}}>({ratingSum.count} review{ratingSum.count !== 1 ? "s" : ""})</span>
+                    </div>
+                  ) : (
+                    <p className="text-xs font-dm-sans mb-3" style={{color:"#8A8480"}}>No reviews yet</p>
+                  )}
+
+                  {/* Rate seller button */}
+                  {!isOwner && user && !alreadyRated && (
+                    <button onClick={() => setShowRatingModal(true)}
+                      className="w-full py-2 rounded-xl text-xs font-dm-sans font-semibold border transition-all"
+                      style={{borderColor:"#D4CFC6",color:"#8A8480"}}>
+                      ⭐ Rate this seller
+                    </button>
+                  )}
+                  {alreadyRated && (
+                    <p className="text-xs font-dm-sans text-center" style={{color:"#2A6B45"}}>✓ You rated this seller</p>
+                  )}
                 </div>
 
                 {/* Escrow info */}
@@ -387,6 +493,40 @@ export default function ClassifiedDetailPage({ ogData }: { ogData?: any }) {
           </div>
         </div>
       </Layout>
+
+        {/* Rating modal */}
+        {showRatingModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
+            style={{background:"rgba(0,0,0,0.5)"}}>
+            <div className="w-full max-w-sm rounded-2xl p-6" style={{background:"#fff"}}>
+              <h3 className="font-syne font-bold text-lg mb-1" style={{color:"#1A1714"}}>Rate {listing.sellerName}</h3>
+              <p className="text-xs font-dm-sans mb-5" style={{color:"#8A8480"}}>How was your experience with this seller?</p>
+              <div className="flex gap-2 justify-center mb-5">
+                {[1,2,3,4,5].map(s => (
+                  <button key={s} onClick={() => setMyRating(s)} className="text-3xl transition-transform hover:scale-110">
+                    {s <= myRating ? "⭐" : "☆"}
+                  </button>
+                ))}
+              </div>
+              <textarea value={myComment} onChange={e => setMyComment(e.target.value)}
+                placeholder="Share your experience (optional)..." rows={3}
+                className="w-full px-4 py-3 rounded-xl border text-sm font-dm-sans resize-none focus:outline-none mb-4"
+                style={{borderColor:"#E8E2D9",color:"#1A1714"}}
+                onFocus={e => e.target.style.borderColor="#C4531A"}
+                onBlur={e => e.target.style.borderColor="#E8E2D9"} />
+              <div className="flex gap-3">
+                <button onClick={() => setShowRatingModal(false)}
+                  className="flex-1 py-3 rounded-xl text-sm font-dm-sans border"
+                  style={{borderColor:"#E8E2D9",color:"#8A8480"}}>Cancel</button>
+                <button onClick={handleSubmitRating} disabled={myRating === 0 || submittingRating}
+                  className="flex-1 py-3 rounded-xl text-sm font-dm-sans font-bold text-white disabled:opacity-50"
+                  style={{background:"#C4531A"}}>
+                  {submittingRating ? "Submitting..." : "Submit rating"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
     </>
   );
 }
