@@ -348,7 +348,7 @@ export default function ClassifiedDetailPage({ ogData }: { ogData?: any }) {
                   <p className="font-syne font-bold text-3xl mb-1" style={{color:"#C4531A"}}>
                     {listing.priceType === "free" ? "FREE"
                       : listing.priceType === "contact" ? "Contact for price"
-                      : `${formatCurrency(listing.price,"CAD")}${listing.priceType==="negotiable"?" (OBO)":""}`}
+                      : `${listing.currency || "CAD"} ${listing.price?.toLocaleString()}${listing.priceType==="negotiable"?" (OBO)":""}`}
                   </p>
                   <p className="text-xs font-dm-sans mb-5" style={{color:"#8A8480"}}>
                     {listing.priceType === "negotiable" ? "Price is negotiable" : ""}
