@@ -246,7 +246,7 @@ function ClassifiedCard({ listing }: { listing: Classified }) {
         <p className="font-syne font-bold text-lg" style={{color:"#C4531A"}}>
           {listing.priceType === "free" ? "FREE"
             : listing.priceType === "contact" ? "Contact for price"
-            : `${formatCurrency(listing.price, "CAD")}${listing.priceType === "negotiable" ? " (OBO)" : ""}`}
+            : `${listing.currency || "CAD"} ${listing.price?.toLocaleString()}${listing.priceType === "negotiable" ? " (OBO)" : ""}`}
         </p>
         <div className="flex items-center justify-between gap-2 mt-1">
           <p className="text-[10px] font-dm-sans truncate capitalize" style={{color:"#8A8480"}}>
