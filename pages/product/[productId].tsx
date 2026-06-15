@@ -95,7 +95,26 @@ export default function ProductPage() {
 
   return (
     <>
-      <Head><title>{product.name} — Planet Mall</title></Head>
+      <Head>
+        <title>{product.name} — Planet Mall</title>
+        <meta name="description" content={`${product.currency || "CAD"} ${product.price?.toLocaleString()} · ${product.description?.slice(0,120)}...`} />
+
+        {/* Open Graph — WhatsApp, Facebook, Telegram */}
+        <meta property="og:type"         content="product" />
+        <meta property="og:site_name"    content="Planet Mall" />
+        <meta property="og:title"        content={`${product.name} — ${product.currency || "CAD"} ${product.price?.toLocaleString()}`} />
+        <meta property="og:description"  content={product.description?.slice(0,150) || "Shop on Planet Mall"} />
+        <meta property="og:image"        content={product.images?.[0] || "https://planetmallshop.com/logo.jpg"} />
+        <meta property="og:image:width"  content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:url"          content={`https://planetmallshop.com/product/${product.productId}`} />
+
+        {/* Twitter / X */}
+        <meta name="twitter:card"        content="summary_large_image" />
+        <meta name="twitter:title"       content={`${product.name} — Planet Mall`} />
+        <meta name="twitter:description" content={`${product.currency || "CAD"} ${product.price?.toLocaleString()} · Shop on Planet Mall`} />
+        <meta name="twitter:image"       content={product.images?.[0] || "https://planetmallshop.com/logo.jpg"} />
+      </Head>
       <Layout>
         <div className="min-h-screen bg-void pt-8 pb-20">
           <div className="max-w-6xl mx-auto px-4 sm:px-6">

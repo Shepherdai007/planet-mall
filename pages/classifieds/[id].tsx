@@ -94,7 +94,26 @@ export default function ClassifiedDetailPage() {
 
   return (
     <>
-      <Head><title>{listing.title} — Planet Mall Classifieds</title></Head>
+      <Head>
+        <title>{listing.title} — Planet Mall Classifieds</title>
+        <meta name="description" content={`${listing.priceType === "free" ? "FREE" : listing.priceType === "contact" ? "Contact for price" : `${listing.currency || "CAD"} ${listing.price?.toLocaleString()}`} · ${listing.city}, ${listing.province} · ${listing.description?.slice(0,100)}...`} />
+
+        {/* Open Graph — WhatsApp, Facebook, Telegram */}
+        <meta property="og:type"        content="product" />
+        <meta property="og:site_name"   content="Planet Mall" />
+        <meta property="og:title"       content={`${listing.title} — ${listing.priceType === "free" ? "FREE" : listing.priceType === "contact" ? "Contact for price" : `${listing.currency || "CAD"} ${listing.price?.toLocaleString()}`}`} />
+        <meta property="og:description" content={`📍 ${listing.city}, ${listing.province} · ${listing.description?.slice(0,120)}...`} />
+        <meta property="og:image"       content={listing.images?.[0] || "https://planetmallshop.com/logo.jpg"} />
+        <meta property="og:image:width"  content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:url"         content={`https://planetmallshop.com/classifieds/${listing.id}`} />
+
+        {/* Twitter / X card */}
+        <meta name="twitter:card"        content="summary_large_image" />
+        <meta name="twitter:title"       content={`${listing.title} — Planet Mall`} />
+        <meta name="twitter:description" content={`📍 ${listing.city} · ${listing.priceType === "free" ? "FREE" : `${listing.currency || "CAD"} ${listing.price?.toLocaleString()}`}`} />
+        <meta name="twitter:image"       content={listing.images?.[0] || "https://planetmallshop.com/logo.jpg"} />
+      </Head>
       <Layout>
         <div className="min-h-screen pb-20 px-4" style={{background:"#F6F1E9"}}>
           <div className="max-w-5xl mx-auto pt-6">
