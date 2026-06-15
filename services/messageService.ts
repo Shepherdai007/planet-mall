@@ -42,6 +42,8 @@ export interface Conversation {
   shopId:           string;
   shopName:         string;
   shopLogo:         string;
+  listingId?:       string;
+  listingTitle?:    string;
   lastMessage:      string;
   lastMessageAt:    unknown;
   lastSenderId:     string;
@@ -50,8 +52,11 @@ export interface Conversation {
 }
 
 // ── Generate deterministic conversation ID ────────────────────────
-export function getConversationId(uid1: string, uid2: string): string {
-  return [uid1, uid2].sort().join("_");
+// If listingId provided → one chat per listing per buyer
+// Otherwise → one chat per buyer-seller pair
+export function getConversationId(uid1: string, uid2: string, listingId?: string): string {
+  const base = [uid1, uid2].sort().join("_");
+  return listingId ? `${base}_${listingId}` : base;
 }
 
 // ── Get or create a conversation ─────────────────────────────────
@@ -65,8 +70,10 @@ export async function getOrCreateConversation(
   shopId:      string,
   shopName:    string,
   shopLogo:    string,
+  listingId?:  string,
+  listingTitle?: string,
 ): Promise<string> {
-  const convId = getConversationId(buyerId, sellerId);
+  const convId = getConversationId(buyerId, sellerId, listingId);
   const ref    = doc(db, "conversations", convId);
   const snap   = await getDoc(ref);
 
@@ -78,6 +85,8 @@ export async function getOrCreateConversation(
       buyerName, sellerName,
       buyerPhoto, sellerPhoto,
       shopId, shopName, shopLogo,
+      listingId:    listingId || "",
+      listingTitle: listingTitle || "",
       lastMessage:   "",
       lastMessageAt: serverTimestamp(),
       lastSenderId:  "",

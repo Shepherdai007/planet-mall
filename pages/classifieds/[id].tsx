@@ -128,9 +128,11 @@ export default function ClassifiedDetailPage({ ogData }: { ogData?: any }) {
     setMessaging(true);
     try {
       const convId = await getOrCreateConversation(
-        user.uid, userDoc?.displayName || "", userDoc?.photoURL || "",
+        user.uid, userDoc?.displayName || user.displayName || "", userDoc?.photoURL || "",
         listing.sellerId, listing.sellerName, listing.sellerPhoto,
-        listing.id!, listing.title, listing.images?.[0] || ""
+        listing.id!, listing.title, listing.images?.[0] || "",
+        listing.id!,   // listingId — one chat per listing
+        listing.title  // listingTitle
       );
       router.push(`/messages/${convId}`);
     } catch { toast.error("Failed to open chat"); }

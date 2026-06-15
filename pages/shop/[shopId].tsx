@@ -14,15 +14,19 @@ import { FOOD_CATEGORIES } from "@/lib/escrow";
 import FollowButton from "@/components/FollowButton";
 import type { ShopData }    from "@/services/shopService";
 import type { ProductData } from "@/services/productService";
+import { useAuth }       from "@/context/AuthContext";
+import { getOrCreateConversation } from "@/services/messageService";
 import toast from "react-hot-toast";
 
 export default function ShopPage() {
   const router = useRouter();
   const { shopId } = router.query;
+  const { user, userDoc } = useAuth();
   const { addItem, openCart } = useCart();
   const [shop,     setShop]     = useState<ShopData|null>(null);
   const [products, setProducts] = useState<ProductData[]>([]);
   const [loading,  setLoading]  = useState(true);
+  const [messaging, setMessaging] = useState<string|null>(null);
 
   useEffect(() => {
     if (!shopId) return;
@@ -63,6 +67,22 @@ export default function ShopPage() {
     addItem({ productId:p.productId!, shopId:p.shopId, shopName:shop!.name, name:p.name, image:p.images?.[0]||"", price:p.price, quantity:1, currency:(p.currency as any)||"CAD" });
     toast.success("Added to cart");
     openCart();
+  }
+
+  async function handleMessage(p: ProductData) {
+    if (!user) { router.push("/auth/login"); return; }
+    if (!shop) return;
+    setMessaging(p.productId!);
+    try {
+      const convId = await getOrCreateConversation(
+        user.uid, userDoc?.displayName || user.displayName || "", userDoc?.photoURL || "",
+        shop.ownerId!, shop.name, shop.logoURL || "",
+        shop.shopId!, shop.name, shop.logoURL || "",
+        p.productId!, p.name
+      );
+      router.push(`/messages/${convId}`);
+    } catch { toast.error("Failed to open chat"); }
+    finally { setMessaging(null); }
   }
 
   return (
@@ -125,13 +145,23 @@ export default function ShopPage() {
                       <p className="text-sm font-dm-sans font-medium text-paper mb-2 line-clamp-2">{p.name}</p>
                       <div className="flex items-center justify-between">
                         <p className="font-syne font-bold text-paper text-sm">{formatCurrency(p.price,"CAD")}</p>
-                        <button onClick={()=>handleAddToCart(p)}
-                          className="w-8 h-8 rounded-full flex items-center justify-center bg-white/[0.06] hover:bg-rust transition-all"
-                          aria-label="Add to cart">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-paper">
-                            <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/>
-                          </svg>
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button onClick={()=>handleMessage(p)}
+                            disabled={messaging === p.productId}
+                            className="w-8 h-8 rounded-full flex items-center justify-center bg-white/[0.06] hover:bg-rust/20 transition-all"
+                            aria-label="Message seller">
+                            {messaging === p.productId
+                              ? <span className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin"/>
+                              : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-paper"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>}
+                          </button>
+                          <button onClick={()=>handleAddToCart(p)}
+                            className="w-8 h-8 rounded-full flex items-center justify-center bg-white/[0.06] hover:bg-rust transition-all"
+                            aria-label="Add to cart">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-paper">
+                              <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/>
+                            </svg>
+                          </button>
+                        </div>
                       </div>
                       {(p.views || 0) > 0 && (
                         <p className="text-[10px] font-dm-sans mt-2" style={{color:"#8A8480"}}>
