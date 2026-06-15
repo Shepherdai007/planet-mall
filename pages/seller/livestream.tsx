@@ -20,6 +20,7 @@ import {
 } from "@/services/livestreamService";
 import { notifyFollowersLive } from "@/services/followService";
 import { formatCurrency }     from "@/lib/helpers";
+import ShareButton            from "@/components/ShareButton";
 import type { ShopData }      from "@/services/shopService";
 import type { ProductData }   from "@/services/productService";
 import type { LiveChatMessage } from "@/services/livestreamService";
@@ -237,11 +238,21 @@ function BroadcastStudio() {
                 <span className="text-muted">❤️ {hearts}</span>
               </div>
             )}
-            <button
-              onClick={() => router.push("/seller/dashboard")}
-              className="px-4 py-2 rounded-xl text-sm font-dm-sans border border-white/10 text-muted hover:text-paper transition-colors">
-              ← Dashboard
-            </button>
+            <div className="flex items-center gap-3">
+              {activeStream && (
+                <ShareButton
+                  url={typeof window !== "undefined" ? `${window.location.origin}/live/${activeStream.id}` : ""}
+                  title={activeStream.title}
+                  text={`🔴 ${shop?.name} is live on Planet Mall — "${activeStream.title}"`}
+                  variant="button"
+                />
+              )}
+              <button
+                onClick={() => router.push("/seller/dashboard")}
+                className="px-4 py-2 rounded-xl text-sm font-dm-sans border border-white/10 text-muted hover:text-paper transition-colors">
+                ← Dashboard
+              </button>
+            </div>
           </div>
         </div>
 
