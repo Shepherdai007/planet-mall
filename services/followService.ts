@@ -21,23 +21,23 @@ export async function followShop(
     userId, userName, shopId, shopName,
     followedAt: serverTimestamp(),
   });
-  // Update shop follower count
-  const shopRef  = doc(db, "shops", shopId);
-  const shopSnap = await getDoc(shopRef);
-  if (shopSnap.exists()) {
-    const current = shopSnap.data().followers || 0;
-    await setDoc(shopRef, { followers: current + 1 }, { merge: true });
+  // Update shop follower count — query by shopId field
+  const shopSnap = await getDocs(query(collection(db, "shops"), where("shopId", "==", shopId)));
+  if (!shopSnap.empty) {
+    const shopDoc = shopSnap.docs[0];
+    const current = shopDoc.data().followers || 0;
+    await setDoc(shopDoc.ref, { followers: current + 1 }, { merge: true });
   }
 }
 
 // ── Unfollow a shop ───────────────────────────────────────────────
 export async function unfollowShop(userId: string, shopId: string): Promise<void> {
   await deleteDoc(doc(db, "follows", shopId, "followers", userId));
-  const shopRef  = doc(db, "shops", shopId);
-  const shopSnap = await getDoc(shopRef);
-  if (shopSnap.exists()) {
-    const current = shopSnap.data().followers || 1;
-    await setDoc(shopRef, { followers: Math.max(0, current - 1) }, { merge: true });
+  const shopSnap = await getDocs(query(collection(db, "shops"), where("shopId", "==", shopId)));
+  if (!shopSnap.empty) {
+    const shopDoc = shopSnap.docs[0];
+    const current = shopDoc.data().followers || 1;
+    await setDoc(shopDoc.ref, { followers: Math.max(0, current - 1) }, { merge: true });
   }
 }
 

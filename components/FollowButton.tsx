@@ -23,7 +23,10 @@ export default function FollowButton({ shopId, shopName, ownerId, compact = fals
   const [checked,   setChecked]   = useState(false);
 
   useEffect(() => {
-    if (!user || !shopId) return;
+    if (!user || !shopId) {
+      setChecked(true); // show button even for non-logged-in users
+      return;
+    }
     isFollowing(user.uid, shopId).then(f => {
       setFollowing(f);
       setChecked(true);
@@ -32,6 +35,8 @@ export default function FollowButton({ shopId, shopName, ownerId, compact = fals
 
   // Hide if current user is the shop owner
   if (user && ownerId && user.uid === ownerId) return null;
+
+  if (!checked) return null;
 
   async function handleToggle() {
     if (!isLoggedIn) { router.push("/auth/login"); return; }
@@ -45,7 +50,7 @@ export default function FollowButton({ shopId, shopName, ownerId, compact = fals
       } else {
         await followShop(user.uid, userDoc.displayName, shopId, shopName);
         setFollowing(true);
-        toast.success(`Following ${shopName}! You'll be notified when they go live 🔴`);
+        toast.success(`Following ${shopName}! 🔴`);
       }
     } catch {
       toast.error("Something went wrong");
@@ -53,9 +58,6 @@ export default function FollowButton({ shopId, shopName, ownerId, compact = fals
       setLoading(false);
     }
   }
-
-  if (!checked) return null;
-  if (!isLoggedIn && compact) return null;
 
   if (compact) {
     return (
