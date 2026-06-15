@@ -17,6 +17,7 @@ import {
 import { formatCurrency } from "@/lib/helpers";
 import toast             from "react-hot-toast";
 import ShareButton       from "@/components/ShareButton";
+import { getOrCreateConversation } from "@/services/messageService";
 import type { LiveStream, LiveChatMessage, PinnedProduct } from "@/services/livestreamService";
 
 export default function WatchPage() {
@@ -31,6 +32,7 @@ export default function WatchPage() {
   const [loading, setLoading] = useState(true);
   const [chatText, setChatText] = useState("");
   const [hearts,  setHearts]  = useState(0);
+  const [messaging, setMessaging] = useState(false);
   const videoRef  = useRef<HTMLDivElement>(null);
   const chatRef   = useRef<HTMLDivElement>(null);
   const agoraRef  = useRef<any>(null);
@@ -112,6 +114,25 @@ export default function WatchPage() {
       if (streamId) updateViewerCount(streamId as string, Math.max(0, (stream!.viewerCount || 1) - 1));
     };
   }, [stream?.agoraChannel, stream?.status]);
+
+  async function handleMessageSeller() {
+    if (!user) { router.push("/auth/login"); return; }
+    if (!stream) return;
+    setMessaging(true);
+    try {
+      const convId = await getOrCreateConversation(
+        user.uid, userDoc?.displayName || user.displayName || "User", userDoc?.photoURL || "",
+        stream.ownerId, stream.shopName, stream.shopLogo || "",
+        stream.shopId, stream.shopName, stream.shopLogo || "",
+        stream.streamId!, stream.title
+      );
+      router.push(`/messages/${convId}`);
+    } catch {
+      toast.error("Could not open chat");
+    } finally {
+      setMessaging(false);
+    }
+  }
 
   async function handleSendChat(e: React.FormEvent) {
     e.preventDefault();
@@ -212,6 +233,18 @@ export default function WatchPage() {
               text={`🔴 ${stream.shopName} is live on Planet Mall — "${stream.title}"`}
               variant="button"
             />
+            {/* Message seller button */}
+            {user?.uid !== stream.ownerId && (
+              <button
+                onClick={handleMessageSeller}
+                disabled={messaging}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-dm-sans font-semibold transition-all disabled:opacity-50"
+                style={{background:"rgba(196,83,26,0.15)",color:"#C4531A",border:"1px solid rgba(196,83,26,0.3)"}}>
+                {messaging
+                  ? <span className="w-3 h-3 border border-rust/30 border-t-rust rounded-full animate-spin"/>
+                  : <>💬 Message</>}
+              </button>
+            )}
             {/* Mobile share — also shown as floating button on video */}
           </div>
         </div>
