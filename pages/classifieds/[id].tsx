@@ -21,7 +21,7 @@ const CONDITION_LABELS: Record<string,string> = {
   fair:"Fair", parts_only:"Parts Only", na:"N/A",
 };
 
-export default function ClassifiedDetailPage() {
+export default function ClassifiedDetailPage({ ogData }: { ogData?: any }) {
   const router = useRouter();
   const { id } = router.query;
   const { user, userDoc } = useAuth();
@@ -95,24 +95,24 @@ export default function ClassifiedDetailPage() {
   return (
     <>
       <Head>
-        <title>{listing.title} — Planet Mall Classifieds</title>
-        <meta name="description" content={`${listing.priceType === "free" ? "FREE" : listing.priceType === "contact" ? "Contact for price" : `${listing.currency || "CAD"} ${listing.price?.toLocaleString()}`} · ${listing.city}, ${listing.province} · ${listing.description?.slice(0,100)}...`} />
+        <title>{ogData?.title || listing.title} — Planet Mall Classifieds</title>
+        <meta name="description" content={ogData?.description || listing.description?.slice(0,150)} />
 
         {/* Open Graph — WhatsApp, Facebook, Telegram */}
-        <meta property="og:type"        content="product" />
-        <meta property="og:site_name"   content="Planet Mall" />
-        <meta property="og:title"       content={`${listing.title} — ${listing.priceType === "free" ? "FREE" : listing.priceType === "contact" ? "Contact for price" : `${listing.currency || "CAD"} ${listing.price?.toLocaleString()}`}`} />
-        <meta property="og:description" content={`📍 ${listing.city}, ${listing.province} · ${listing.description?.slice(0,120)}...`} />
-        <meta property="og:image"       content={listing.images?.[0] || "https://planetmallshop.com/logo.jpg"} />
+        <meta property="og:type"         content="product" />
+        <meta property="og:site_name"    content="Planet Mall" />
+        <meta property="og:title"        content={ogData?.title || `${listing.title} — ${listing.currency || "CAD"} ${listing.price?.toLocaleString()}`} />
+        <meta property="og:description"  content={ogData?.description || `📍 ${listing.city} · ${listing.description?.slice(0,120)}`} />
+        <meta property="og:image"        content={ogData?.image || listing.images?.[0] || "https://planetmallshop.com/logo.jpg"} />
         <meta property="og:image:width"  content="1200" />
         <meta property="og:image:height" content="630" />
-        <meta property="og:url"         content={`https://planetmallshop.com/classifieds/${listing.id}`} />
+        <meta property="og:url"          content={ogData?.url || `https://planetmallshop.com/classifieds/${listing.id}`} />
 
-        {/* Twitter / X card */}
+        {/* Twitter / X */}
         <meta name="twitter:card"        content="summary_large_image" />
-        <meta name="twitter:title"       content={`${listing.title} — Planet Mall`} />
-        <meta name="twitter:description" content={`📍 ${listing.city} · ${listing.priceType === "free" ? "FREE" : `${listing.currency || "CAD"} ${listing.price?.toLocaleString()}`}`} />
-        <meta name="twitter:image"       content={listing.images?.[0] || "https://planetmallshop.com/logo.jpg"} />
+        <meta name="twitter:title"       content={ogData?.title || listing.title} />
+        <meta name="twitter:description" content={ogData?.description || `📍 ${listing.city}`} />
+        <meta name="twitter:image"       content={ogData?.image || listing.images?.[0] || "https://planetmallshop.com/logo.jpg"} />
       </Head>
       <Layout>
         <div className="min-h-screen pb-20 px-4" style={{background:"#F6F1E9"}}>
@@ -302,4 +302,30 @@ export default function ClassifiedDetailPage() {
       </Layout>
     </>
   );
+}
+
+export async function getServerSideProps({ params }: { params: { id: string } }) {
+  try {
+    const { adminDb } = await import("@/lib/firebase-admin");
+    const snap = await adminDb.doc(`classifieds/${params.id}`).get();
+    if (!snap.exists) return { props: {} };
+
+    const data = snap.data()!;
+    const priceLabel = data.priceType === "free" ? "FREE"
+      : data.priceType === "contact" ? "Contact for price"
+      : `${data.currency || "CAD"} ${Number(data.price || 0).toLocaleString()}`;
+
+    return {
+      props: {
+        ogData: {
+          title:       `${data.title} — ${priceLabel}`,
+          description: `📍 ${data.city}, ${data.province} · ${(data.description || "").slice(0, 140)}`,
+          image:       data.images?.[0] || "https://planetmallshop.com/logo.jpg",
+          url:         `https://planetmallshop.com/classifieds/${params.id}`,
+        },
+      },
+    };
+  } catch {
+    return { props: {} };
+  }
 }
