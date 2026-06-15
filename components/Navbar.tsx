@@ -2,20 +2,35 @@
 "use client";
 
 import Link             from "next/link";
-import { useState }     from "react";
+import { useState, useEffect } from "react";
 import { useRouter }    from "next/router";
 import { useAuth }      from "@/context/AuthContext";
 import { useCart }      from "@/context/CartContext";
 import { logout }       from "@/lib/auth";
 import toast            from "react-hot-toast";
 import NotificationBell from "./NotificationBell";
+import { listenConversations } from "@/services/messageService";
 
 export default function Navbar() {
   const { user, userDoc, isLoggedIn, isSeller } = useAuth();
   const { itemCount, openCart }                  = useCart();
   const router  = useRouter();
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [mobileOpen,  setMobileOpen]  = useState(false);
+  const [profileOpen,     setProfileOpen]     = useState(false);
+  const [mobileOpen,      setMobileOpen]      = useState(false);
+  const [unreadMessages,  setUnreadMessages]  = useState(0);
+
+  // Listen for unread messages
+  useEffect(() => {
+    if (!user) { setUnreadMessages(0); return; }
+    const unsub = listenConversations(user.uid, convs => {
+      const total = convs.reduce((sum, c) => {
+        const isSeller = user.uid === c.sellerId;
+        return sum + (isSeller ? c.unreadSeller || 0 : c.unreadBuyer || 0);
+      }, 0);
+      setUnreadMessages(total);
+    });
+    return unsub;
+  }, [user]);
 
   async function handleLogout() {
     try {
@@ -51,7 +66,15 @@ export default function Navbar() {
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-6 text-sm font-dm-sans text-muted">
             {NAV_LINKS.map(({href,label}) => (
-              <Link key={href} href={href} className="hover:text-paper transition-colors">{label}</Link>
+              <Link key={href} href={href} className="relative hover:text-paper transition-colors">
+                {label}
+                {label === "Messages" && unreadMessages > 0 && (
+                  <span className="absolute -top-2 -right-3 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-white"
+                    style={{background:"#C4531A"}}>
+                    {unreadMessages > 9 ? "9+" : unreadMessages}
+                  </span>
+                )}
+              </Link>
             ))}
           </div>
 
@@ -77,8 +100,8 @@ export default function Navbar() {
               <div className="relative">
                 <button onClick={() => setProfileOpen(v => !v)}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 hover:border-white/20 transition-colors">
-                  {user?.photoURL || userDoc?.photoURL
-                    ? <img src={user?.photoURL || userDoc?.photoURL || ""} alt="" className="w-5 h-5 rounded-full object-cover" />
+                  {userDoc?.photoURL
+                    ? <img src={userDoc.photoURL} alt="" className="w-5 h-5 rounded-full object-cover" />
                     : <span className="w-5 h-5 bg-rust/20 text-rust rounded-full flex items-center justify-center text-xs font-bold">
                         {userDoc?.displayName?.[0]?.toUpperCase() || "U"}
                       </span>}
@@ -124,9 +147,15 @@ export default function Navbar() {
               {NAV_LINKS.map(({href,label}) => (
                 <Link key={href} href={href}
                   onClick={() => setMobileOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-dm-sans text-muted hover:text-paper hover:bg-white/5 transition-all"
+                  className="flex items-center justify-between px-4 py-3 rounded-xl text-sm font-dm-sans text-muted hover:text-paper hover:bg-white/5 transition-all"
                   style={{color: router.pathname === href ? "#C4531A" : undefined}}>
                   {label}
+                  {label === "Messages" && unreadMessages > 0 && (
+                    <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+                      style={{background:"#C4531A"}}>
+                      {unreadMessages > 9 ? "9+" : unreadMessages}
+                    </span>
+                  )}
                 </Link>
               ))}
               <div className="pt-3 mt-3 border-t border-white/5">
