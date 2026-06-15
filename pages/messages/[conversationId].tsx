@@ -57,19 +57,22 @@ export default function ChatPage() {
 
   async function handleSend(e?: React.FormEvent) {
     e?.preventDefault();
-    if (!text.trim() || !user || !userDoc || !conversationId) return;
+    if (!text.trim() || !user || !conversationId) return;
     const msg = text.trim();
     setText("");
     setSending(true);
     try {
       await sendMessage(conversationId as string, {
         senderId:    user.uid,
-        senderName:  userDoc.displayName,
-        senderPhoto: userDoc.photoURL || "",
+        senderName:  userDoc?.displayName || user.displayName || "User",
+        senderPhoto: userDoc?.photoURL || user.photoURL || "",
         text:        msg,
         type:        "text",
         productCard: null,
       });
+    } catch (err) {
+      console.error("Send error:", err);
+      setText(msg); // restore text on error
     } finally {
       setSending(false);
       inputRef.current?.focus();
@@ -240,6 +243,7 @@ export default function ChatPage() {
             />
             <button
               type="submit"
+              onClick={() => handleSend()}
               disabled={!text.trim() || sending}
               className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 transition-all disabled:opacity-40"
               style={{background: text.trim() ? "#C4531A" : "rgba(255,255,255,0.06)"}}>
