@@ -7,7 +7,7 @@ import { useRouter }  from "next/router";
 import { useEffect, useState } from "react";
 import Layout         from "@/components/Layout";
 import { useAuth }    from "@/context/AuthContext";
-import { getClassified, markAsSold } from "@/services/classifiedService";
+import { getClassified, getClassifieds, markAsSold } from "@/services/classifiedService";
 import { formatCurrency, timeAgo }   from "@/lib/helpers";
 import { getOrCreateConversation }   from "@/services/messageService";
 import ReportButton   from "@/components/ReportButton";
@@ -30,11 +30,29 @@ export default function ClassifiedDetailPage({ ogData }: { ogData?: any }) {
   const [activeImg, setActiveImg] = useState(0);
   const [messaging, setMessaging] = useState(false);
   const [boosting,  setBoosting]  = useState(false);
+  const [showMore,  setShowMore]  = useState(false);
+  const [similar,   setSimilar]   = useState<Classified[]>([]);
+  const [scrolled,  setScrolled]  = useState(false);
 
   useEffect(() => {
     if (!id) return;
-    getClassified(id as string).then(l => { setListing(l); setLoading(false); });
+    getClassified(id as string).then(l => {
+      setListing(l);
+      setLoading(false);
+      // Fetch similar listings from same category
+      if (l?.category) {
+        getClassifieds({ category: l.category, limit: 5 })
+          .then(results => setSimilar(results.filter(r => r.id !== id)));
+      }
+    });
   }, [id]);
+
+  // Scroll listener for sticky bar
+  useEffect(() => {
+    function onScroll() { setScrolled(window.scrollY > 300); }
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   async function handleMessage() {
     if (!user || !listing) { router.push("/auth/login"); return; }
@@ -115,6 +133,34 @@ export default function ClassifiedDetailPage({ ogData }: { ogData?: any }) {
         <meta name="twitter:image"       content={ogData?.image || listing.images?.[0] || "https://planetmallshop.com/logo.jpg"} />
       </Head>
       <Layout>
+        {/* Sticky bar — shows when scrolled down */}
+        {scrolled && (
+          <div className="fixed top-16 left-0 right-0 z-40 px-4 py-3 flex items-center gap-4 shadow-lg"
+            style={{background:"#fff",borderBottom:"1px solid #E8E2D9"}}>
+            <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0" style={{background:"#F6F1E9"}}>
+              {listing.images?.[0]
+                ? <img src={listing.images[0]} alt="" className="w-full h-full object-cover" />
+                : <div className="w-full h-full flex items-center justify-center text-lg">📋</div>}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-dm-sans font-semibold text-sm truncate" style={{color:"#1A1714"}}>{listing.title}</p>
+              <p className="font-syne font-bold text-sm" style={{color:"#C4531A"}}>
+                {listing.priceType === "free" ? "FREE"
+                  : listing.priceType === "contact" ? "Contact for price"
+                  : `${listing.currency || "CAD"} ${listing.price?.toLocaleString()}${listing.priceType === "negotiable" ? " (OBO)" : ""}`}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {!isOwner && listing.status !== "sold" && (
+                <button onClick={handleMessage} disabled={messaging}
+                  className="px-4 py-2 rounded-xl text-white font-dm-sans font-bold text-sm disabled:opacity-50"
+                  style={{background:"#C4531A"}}>
+                  💬 Message
+                </button>
+              )}
+            </div>
+          </div>
+        )}
         <div className="min-h-screen pb-20 px-4" style={{background:"#F6F1E9"}}>
           <div className="max-w-5xl mx-auto pt-6">
 
@@ -188,9 +234,20 @@ export default function ClassifiedDetailPage({ ogData }: { ogData?: any }) {
                     )}
                   </div>
 
-                  <p className="font-dm-sans text-sm leading-relaxed mb-4" style={{color:"#4A4440"}}>
-                    {listing.description}
-                  </p>
+                  <div className="mb-4">
+                    <p className="font-dm-sans text-sm leading-relaxed" style={{color:"#4A4440"}}>
+                      {showMore || (listing.description?.length || 0) <= 200
+                        ? listing.description
+                        : listing.description?.slice(0, 200) + "..."}
+                    </p>
+                    {(listing.description?.length || 0) > 200 && (
+                      <button onClick={() => setShowMore(v => !v)}
+                        className="mt-2 text-sm font-dm-sans font-semibold"
+                        style={{color:"#C4531A"}}>
+                        {showMore ? "Show less ↑" : "Show more ↓"}
+                      </button>
+                    )}
+                  </div>
 
                   <div className="flex items-center gap-4 pt-4" style={{borderTop:"1px solid #E8E2D9"}}>
                     <ShareButton
@@ -297,6 +354,36 @@ export default function ClassifiedDetailPage({ ogData }: { ogData?: any }) {
                 </div>
               </div>
             </div>
+
+            {/* Similar listings */}
+            {similar.length > 0 && (
+              <div className="mt-10">
+                <h2 className="font-syne font-bold text-xl mb-5" style={{color:"#1A1714"}}>Similar listings</h2>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {similar.slice(0,4).map(item => (
+                    <Link key={item.id} href={`/classifieds/${item.id}`}
+                      className="rounded-2xl overflow-hidden block transition-all hover:shadow-md group"
+                      style={{background:"#fff",border:"1px solid #E8E2D9"}}>
+                      <div className="h-32 overflow-hidden" style={{background:"#F6F1E9"}}>
+                        {item.images?.[0]
+                          ? <img src={item.images[0]} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                          : <div className="w-full h-full flex items-center justify-center text-3xl">📋</div>}
+                      </div>
+                      <div className="p-3">
+                        <p className="font-dm-sans font-semibold text-xs mb-1 line-clamp-2" style={{color:"#1A1714"}}>{item.title}</p>
+                        <p className="font-syne font-bold text-sm" style={{color:"#C4531A"}}>
+                          {item.priceType === "free" ? "FREE"
+                            : item.priceType === "contact" ? "Contact"
+                            : `${item.currency || "CAD"} ${item.price?.toLocaleString()}`}
+                        </p>
+                        <p className="text-[10px] font-dm-sans mt-1 truncate" style={{color:"#8A8480"}}>📍 {item.city}</p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
           </div>
         </div>
       </Layout>
