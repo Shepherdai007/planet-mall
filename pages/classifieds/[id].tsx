@@ -211,6 +211,12 @@ export default function ClassifiedDetailPage() {
 
                   {isOwner && (
                     <div className="space-y-3">
+                      <button
+                        onClick={() => router.push(`/classifieds/post?edit=${listing.id}`)}
+                        className="w-full py-3 rounded-xl font-dm-sans font-bold text-sm text-white flex items-center justify-center gap-2"
+                        style={{background:"#1A1714",border:"1px solid rgba(255,255,255,0.1)"}}>
+                        ✏️ Edit listing
+                      </button>
                       <button onClick={()=>markAsSold(listing.id!).then(()=>toast.success("Marked as sold!"))}
                         className="w-full py-3 rounded-xl font-dm-sans font-semibold text-sm border"
                         style={{borderColor:"#D4CFC6",color:"#8A8480"}}>

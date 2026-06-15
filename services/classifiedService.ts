@@ -20,6 +20,7 @@ export interface Classified {
   title:        string;
   description:  string;
   price:        number;
+  currency:     string;   // e.g. "CAD", "USD", "GBP", "JPY", "GHS"
   priceType:    "fixed" | "negotiable" | "free" | "contact";
   category:     string;
   subCategory:  string;
@@ -35,8 +36,6 @@ export interface Classified {
   views:        number;
   useEscrow:    boolean;     // seller opted into Planet Mall escrow
   tags:         string[];
-  phone?:       string;      // seller contact phone
-  whatsapp?:    string;      // seller WhatsApp number
   createdAt:    unknown;
   expiresAt:    unknown;     // listings expire after 30 days
 }

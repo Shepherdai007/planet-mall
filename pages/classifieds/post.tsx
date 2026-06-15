@@ -3,19 +3,22 @@
 
 import Head              from "next/head";
 import { useRouter }     from "next/router";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import toast             from "react-hot-toast";
 import Layout            from "@/components/Layout";
 import { useAuth }       from "@/context/AuthContext";
-import { createClassified, CLASSIFIED_CATEGORIES, PROVINCES } from "@/services/classifiedService";
+import { createClassified, updateClassified, getClassified, CLASSIFIED_CATEGORIES, PROVINCES } from "@/services/classifiedService";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { storage } from "@/lib/firebase";
 
 export default function PostClassifiedPage() {
   const { user, userDoc, isLoggedIn, loading } = useAuth();
   const router = useRouter();
+  const { edit } = router.query;
+  const isEditMode = !!edit;
   const fileRef = useRef<HTMLInputElement>(null);
-  const [saving,    setSaving]    = useState(false);
+  const [saving,      setSaving]    = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
   const [images,    setImages]    = useState<File[]>([]);
   const [previews,  setPreviews]  = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -24,6 +27,7 @@ export default function PostClassifiedPage() {
     title:       "",
     description: "",
     price:       "",
+    currency:    "CAD",
     priceType:   "fixed" as "fixed"|"negotiable"|"free"|"contact",
     category:    "",
     subCategory: "",
@@ -45,6 +49,35 @@ export default function PostClassifiedPage() {
   function up(field: string, value: any) {
     setForm(f => ({...f, [field]: value}));
   }
+
+  // Load existing listing in edit mode
+  useEffect(() => {
+    if (!edit) return;
+    setEditLoading(true);
+    getClassified(edit as string).then(listing => {
+      if (!listing) return;
+      setForm({
+        title:       listing.title,
+        description: listing.description,
+        category:    listing.category,
+        subCategory: listing.subCategory,
+        condition:   listing.condition,
+        priceType:   listing.priceType,
+        price:       listing.price ? String(listing.price) : "",
+        currency:    listing.currency || "CAD",
+        province:    listing.province,
+        city:        listing.city,
+        country:     listing.country,
+        useEscrow:   listing.useEscrow,
+        tags:        listing.tags?.join(", ") || "",
+        phone:       (listing as any).phone || "",
+        whatsapp:    (listing as any).whatsapp || "",
+      });
+      // Show existing images as previews
+      if (listing.images?.length) setPreviews(listing.images);
+      setEditLoading(false);
+    });
+  }, [edit]);
 
   function handleImages(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []).slice(0, 5);
@@ -75,31 +108,46 @@ export default function PostClassifiedPage() {
     }
     setSaving(true);
     try {
-      const imageUrls = await uploadImages();
-      const id = await createClassified({
-        sellerId:    user.uid,
-        sellerName:  userDoc.displayName,
-        sellerPhoto: userDoc.photoURL || "",
+      // Only upload new images; keep existing previews that are URLs (not File objects)
+      const newImageUrls = await uploadImages();
+      const existingUrls = previews.filter(p => p.startsWith("http"));
+      const allImages = [...existingUrls, ...newImageUrls];
+
+      const data = {
         title:       form.title,
         description: form.description,
         price:       parseFloat(form.price) || 0,
+        currency:    form.currency,
         priceType:   form.priceType,
         category:    form.category,
         subCategory: form.subCategory,
-        images:      imageUrls,
+        images:      allImages,
         city:        form.city,
         province:    form.province,
         country:     form.country,
         condition:   form.condition,
-        status:      "active",
         useEscrow:   form.useEscrow,
-        featuredUntil: null,
         tags:        form.tags.split(",").map(t=>t.trim()).filter(Boolean),
         phone:       form.phone,
         whatsapp:    form.whatsapp,
-      });
-      toast.success("Ad posted! 🎉");
-      router.push(`/classifieds/${id}`);
+      };
+
+      if (isEditMode) {
+        await updateClassified(edit as string, data);
+        toast.success("Listing updated! ✅");
+        router.push(`/classifieds/${edit}`);
+      } else {
+        const id = await createClassified({
+          sellerId:    user.uid,
+          sellerName:  userDoc.displayName,
+          sellerPhoto: userDoc.photoURL || "",
+          status:      "active",
+          featuredUntil: null,
+          ...data,
+        });
+        toast.success("Ad posted! 🎉");
+        router.push(`/classifieds/${id}`);
+      }
     } catch (err: any) {
       console.error("Post ad error:", err);
       toast.error(err?.message || "Failed to post ad — check console");
@@ -114,13 +162,13 @@ export default function PostClassifiedPage() {
 
   return (
     <>
-      <Head><title>Post an Ad — Planet Mall Classifieds</title></Head>
+      <Head><title>{isEditMode ? "Edit Listing" : "Post an Ad"} — Planet Mall Classifieds</title></Head>
       <Layout>
         <div className="min-h-screen pb-20 px-4" style={{background:"#F6F1E9"}}>
           <div className="max-w-2xl mx-auto pt-8">
 
             <div className="mb-8">
-              <h1 className="font-syne font-bold text-3xl mb-1" style={{color:"#1A1714"}}>Post an ad</h1>
+              <h1 className="font-syne font-bold text-3xl mb-1" style={{color:"#1A1714"}}>{isEditMode ? "Edit listing" : "Post an ad"}</h1>
               <p className="text-sm font-dm-sans" style={{color:"#8A8480"}}>Free to post. Reach buyers across Canada and worldwide.</p>
             </div>
 
@@ -239,11 +287,38 @@ export default function PostClassifiedPage() {
                   ))}
                 </div>
                 {(form.priceType === "fixed" || form.priceType === "negotiable") && (
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-dm-sans font-semibold" style={{color:"#8A8480"}}>CA$</span>
-                    <input className={`${inp} pl-12`} style={inpStyle} type="number" value={form.price} onChange={e=>up("price",e.target.value)}
-                      placeholder="0.00"
-                      onFocus={e=>{e.target.style.borderColor="#C4531A"}} onBlur={e=>{e.target.style.borderColor="#D4CFC6"}} />
+                  <div className="space-y-3">
+                    {/* Currency selector */}
+                    <div>
+                      <label className="block text-xs font-dm-sans mb-1.5" style={{color:"#8A8480"}}>Currency</label>
+                      <select className={inp} style={inpStyle} value={form.currency} onChange={e=>up("currency",e.target.value)}>
+                        {[
+                          {code:"CAD", label:"🇨🇦 CAD — Canadian Dollar"},
+                          {code:"USD", label:"🇺🇸 USD — US Dollar"},
+                          {code:"GBP", label:"🇬🇧 GBP — British Pound"},
+                          {code:"EUR", label:"🇪🇺 EUR — Euro"},
+                          {code:"JPY", label:"🇯🇵 JPY — Japanese Yen"},
+                          {code:"GHS", label:"🇬🇭 GHS — Ghanaian Cedi"},
+                          {code:"NGN", label:"🇳🇬 NGN — Nigerian Naira"},
+                          {code:"KES", label:"🇰🇪 KES — Kenyan Shilling"},
+                          {code:"ZAR", label:"🇿🇦 ZAR — South African Rand"},
+                          {code:"AUD", label:"🇦🇺 AUD — Australian Dollar"},
+                          {code:"INR", label:"🇮🇳 INR — Indian Rupee"},
+                          {code:"CNY", label:"🇨🇳 CNY — Chinese Yuan"},
+                          {code:"AED", label:"🇦🇪 AED — UAE Dirham"},
+                          {code:"OTHER", label:"Other"},
+                        ].map(c=>(
+                          <option key={c.code} value={c.code}>{c.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    {/* Price input */}
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 font-dm-sans font-semibold text-sm" style={{color:"#8A8480"}}>{form.currency}</span>
+                      <input className={`${inp} pl-16`} style={inpStyle} type="number" value={form.price} onChange={e=>up("price",e.target.value)}
+                        placeholder="0.00"
+                        onFocus={e=>{e.target.style.borderColor="#C4531A"}} onBlur={e=>{e.target.style.borderColor="#D4CFC6"}} />
+                    </div>
                   </div>
                 )}
               </div>
@@ -308,8 +383,8 @@ export default function PostClassifiedPage() {
                 className="w-full py-4 rounded-xl text-white font-dm-sans font-bold text-base disabled:opacity-50 flex items-center justify-center gap-2"
                 style={{background:"#C4531A"}}>
                 {saving || uploading
-                  ? <><span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />{uploading?"Uploading photos...":"Posting ad..."}</>
-                  : "Post ad for free →"}
+                  ? <><span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />{uploading?"Uploading photos...":isEditMode?"Saving changes...":"Posting ad..."}</>
+                  : isEditMode ? "Save changes →" : "Post ad for free →"}
               </button>
               <p className="text-xs text-center font-dm-sans" style={{color:"#8A8480"}}>
                 Free listing for 30 days. Boost to featured for CA$0.99.
