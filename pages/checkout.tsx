@@ -12,7 +12,7 @@ import toast          from "react-hot-toast";
 import { useCart }    from "@/context/CartContext";
 import { useAuth }    from "@/context/AuthContext";
 import { formatCurrency } from "@/lib/helpers";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, doc, getDoc, serverTimestamp } from "firebase/firestore";
 import { db }         from "@/lib/firebase";
 import BuyerProtectionBadge from "@/components/BuyerProtectionBadge";
 import OrderReview from "@/components/OrderReview";
@@ -82,11 +82,19 @@ export default function CheckoutPage() {
       // Create one order per shop
       for (const [shopId, shopItems] of Object.entries(shopGroups)) {
         const orderTotal = shopItems.reduce((s, i) => s + i.price * i.quantity, 0);
+
+        // Check if these items are food listings (for escrow 2hr rule)
+        const foodCheck = await Promise.all(
+          shopItems.map(item => getDoc(doc(db, "foodListings", item.productId)))
+        );
+        const orderIsFood = foodCheck.some(snap => snap.exists());
+
         await addDoc(collection(db, "orders"), {
           buyerId:     user.uid,
           buyerEmail:  form.email,
           shopId,
           shopName:    shopItems[0].shopName,
+          sellerId:    shopId,        // for food orders, shopId IS the sellerId
           items:       shopItems,
           subtotal:    orderTotal,
           shipping:    shippingCost,
@@ -95,6 +103,7 @@ export default function CheckoutPage() {
           currency:    "CAD",
           status:      "pending",
           escrowStatus: "held",   // held → released (on delivery confirm) or disputed
+          isFoodOrder: orderIsFood,
           shippingAddress: form,
           shippingMethod:  shipping,
           paymentMethod:   "stripe",

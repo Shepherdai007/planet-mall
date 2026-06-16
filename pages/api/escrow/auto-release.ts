@@ -14,14 +14,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const now        = new Date();
-  // Standard: 14 days, Food: 2 hours
-    const cutoffStandard = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-    const cutoffFood     = new Date(now.getTime() - 2 * 60 * 60 * 1000);
-    const cutoff = cutoffStandard; // default // 14 days ago
+  const now             = new Date();
+  const cutoffStandard  = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+  const cutoffFood      = new Date(now.getTime() - 2 * 60 * 60 * 1000);
 
   try {
-    // Find all shipped orders older than 14 days with escrow still "held"
+    // Find all shipped orders with escrow still "held"
     const snap = await adminDb.collection("orders")
       .where("status", "in", ["shipped", "confirmed"])
       .where("escrowStatus", "==", "held")
@@ -30,7 +28,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const toRelease = snap.docs.filter(doc => {
       const data = doc.data();
       const shippedAt = data.shippedAt?.toDate?.() || data.createdAt?.toDate?.();
-      return shippedAt && shippedAt < cutoff;
+      if (!shippedAt) return false;
+
+      const cutoff = data.isFoodOrder === true ? cutoffFood : cutoffStandard;
+      return shippedAt < cutoff;
     });
 
     let released = 0;
