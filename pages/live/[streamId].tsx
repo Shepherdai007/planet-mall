@@ -136,25 +136,25 @@ export default function WatchPage() {
 
   async function handleSendChat(e: React.FormEvent) {
     e.preventDefault();
-    if (!chatText.trim() || !streamId || !user || !userDoc) return;
+    if (!chatText.trim() || !streamId || !user) return;
     const msg = chatText.trim();
     setChatText("");
     await sendLiveChatMessage(streamId as string, {
       userId:    user.uid,
-      userName:  userDoc.displayName,
-      userPhoto: userDoc.photoURL || "",
+      userName:  userDoc?.displayName || user.displayName || "User",
+      userPhoto: userDoc?.photoURL || user.photoURL || "",
       text:      msg,
       type:      "message",
     });
   }
 
   async function handleHeart() {
-    if (!streamId || !user || !userDoc) return;
+    if (!streamId || !user) return;
     setHearts(h => h + 1);
     await sendLiveChatMessage(streamId as string, {
       userId:    user.uid,
-      userName:  userDoc.displayName,
-      userPhoto: userDoc.photoURL || "",
+      userName:  userDoc?.displayName || user.displayName || "User",
+      userPhoto: userDoc?.photoURL || user.photoURL || "",
       text:      "❤️",
       type:      "heart",
     });
@@ -324,7 +324,7 @@ export default function WatchPage() {
                 className="flex-1 px-4 py-2.5 rounded-full text-sm font-dm-sans text-white placeholder:text-white/40 focus:outline-none disabled:opacity-40"
                 style={{background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.2)"}}
               />
-              <button type="submit" disabled={!chatText.trim() || isEnded}
+              <button type="submit" onClick={() => handleSendChat({ preventDefault: ()=>{} } as any)} disabled={!chatText.trim() || isEnded}
                 className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 disabled:opacity-40"
                 style={{background:"#C4531A"}}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" className="-rotate-45 translate-x-0.5">
