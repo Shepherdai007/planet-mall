@@ -11,6 +11,7 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 import { db }            from "@/lib/firebase";
 import Layout            from "@/components/Layout";
 import { useCart }       from "@/context/CartContext";
+import { useAuth }       from "@/context/AuthContext";
 import { formatCurrency } from "@/lib/helpers";
 import { FOOD_CATEGORIES } from "@/lib/escrow";
 import type { ProductData } from "@/services/productService";
@@ -19,6 +20,7 @@ import toast from "react-hot-toast";
 
 export default function FoodPage() {
   const { addItem, openCart } = useCart();
+  const { isLoggedIn, isSeller } = useAuth();
   const [products, setProducts] = useState<ProductData[]>([]);
   const [shops,    setShops]    = useState<Record<string,ShopData>>({});
   const [loading,  setLoading]  = useState(true);
@@ -144,7 +146,7 @@ export default function FoodPage() {
                 <p className="text-5xl mb-4">🍽</p>
                 <h2 className="font-syne font-bold text-2xl text-paper mb-2">No food listings yet</h2>
                 <p className="text-muted font-dm-sans mb-6">Be the first to list food on Planet Mall!</p>
-                <Link href="/auth/signup?role=seller"
+                <Link href={isLoggedIn ? "/seller/create-shop" : "/auth/signup?role=seller"}
                   className="px-6 py-3 rounded-full text-white font-dm-sans font-semibold inline-block"
                   style={{background:"#C4531A"}}>
                   Open a food store
