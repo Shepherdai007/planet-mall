@@ -109,8 +109,8 @@ export default function PostFoodPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!user || !userDoc) { router.push("/auth/login?redirect=/food/post"); return; }
-    if (!form.name || !form.price || !form.city) {
-      toast.error("Please fill in name, price and city");
+    if (!form.name || !form.city || (form.priceType !== "contact" && !form.price)) {
+      toast.error("Please fill in name, city, and price");
       return;
     }
 
