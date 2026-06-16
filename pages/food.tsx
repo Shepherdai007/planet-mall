@@ -213,12 +213,23 @@ export default function FoodPage() {
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <p className="font-syne font-bold text-lg text-paper">{l.currency} {l.price?.toLocaleString()}</p>
-                        <button onClick={()=>handleAddToCart(l)} disabled={l.status==="sold_out"}
-                          className="px-4 py-2 rounded-xl text-white text-sm font-dm-sans font-semibold transition-all hover:opacity-90 disabled:opacity-40"
-                          style={{background:"#C4531A"}}>
-                          Order now
-                        </button>
+                        <p className="font-syne font-bold text-lg text-paper">
+                          {l.priceType === "contact" ? "Contact for price"
+                            : `${l.currency} ${l.price?.toLocaleString()}${l.priceType==="negotiable"?" (OBO)":""}`}
+                        </p>
+                        {l.priceType === "contact" ? (
+                          <Link href={`/food/${l.id}`}
+                            className="px-4 py-2 rounded-xl text-white text-sm font-dm-sans font-semibold transition-all hover:opacity-90"
+                            style={{background:"#C4531A"}}>
+                            View details
+                          </Link>
+                        ) : (
+                          <button onClick={()=>handleAddToCart(l)} disabled={l.status==="sold_out"}
+                            className="px-4 py-2 rounded-xl text-white text-sm font-dm-sans font-semibold transition-all hover:opacity-90 disabled:opacity-40"
+                            style={{background:"#C4531A"}}>
+                            Order now
+                          </button>
+                        )}
                       </div>
                       {(l.views || 0) > 0 && (
                         <p className="text-[10px] font-dm-sans mt-2" style={{color:"#8A8480"}}>👁 {l.views} views</p>

@@ -191,21 +191,26 @@ export default function FoodDetailPage({ ogData }: { ogData?: any }) {
               <div className="space-y-4">
                 <div className="p-6 rounded-2xl" style={{background:"#fff",border:"1px solid #E8E2D9"}}>
                   <p className="font-syne font-bold text-3xl mb-4" style={{color:"#C4531A"}}>
-                    {listing.currency} {listing.price?.toLocaleString()}
+                    {listing.priceType === "contact" ? "Contact for price"
+                      : `${listing.currency} ${listing.price?.toLocaleString()}${listing.priceType==="negotiable"?" (OBO)":""}`}
                   </p>
 
                   {!isOwner && !soldOut && (
                     <>
-                      <div className="flex items-center gap-3 mb-3 px-4 py-2 rounded-xl border" style={{borderColor:"#D4CFC6"}}>
-                        <button onClick={()=>setQty(q=>Math.max(1,q-1))} style={{color:"#8A8480"}}>−</button>
-                        <span className="font-syne font-bold flex-1 text-center" style={{color:"#1A1714"}}>{qty}</span>
-                        <button onClick={()=>setQty(q=>q+1)} style={{color:"#8A8480"}}>+</button>
-                      </div>
-                      <button onClick={handleAddToCart}
-                        className="w-full py-3.5 rounded-xl text-white font-dm-sans font-bold mb-3"
-                        style={{background:"#C4531A"}}>
-                        Add to cart — {listing.currency} {(listing.price*qty).toLocaleString()}
-                      </button>
+                      {listing.priceType !== "contact" && (
+                        <div className="flex items-center gap-3 mb-3 px-4 py-2 rounded-xl border" style={{borderColor:"#D4CFC6"}}>
+                          <button onClick={()=>setQty(q=>Math.max(1,q-1))} style={{color:"#8A8480"}}>−</button>
+                          <span className="font-syne font-bold flex-1 text-center" style={{color:"#1A1714"}}>{qty}</span>
+                          <button onClick={()=>setQty(q=>q+1)} style={{color:"#8A8480"}}>+</button>
+                        </div>
+                      )}
+                      {listing.priceType !== "contact" && (
+                        <button onClick={handleAddToCart}
+                          className="w-full py-3.5 rounded-xl text-white font-dm-sans font-bold mb-3"
+                          style={{background:"#C4531A"}}>
+                          Add to cart — {listing.currency} {(listing.price*qty).toLocaleString()}
+                        </button>
+                      )}
                       <button onClick={handleMessage} disabled={messaging}
                         className="w-full py-3 rounded-xl font-dm-sans font-semibold text-sm border disabled:opacity-50"
                         style={{borderColor:"#D4CFC6",color:"#8A8480"}}>

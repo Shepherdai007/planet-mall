@@ -19,6 +19,7 @@ export interface FoodListing {
   description:   string;
   price:         number;
   currency:      string;
+  priceType:     "fixed" | "negotiable" | "contact";
   category:      string;        // one of FOOD_CATEGORIES
   images:        string[];
   city:          string;

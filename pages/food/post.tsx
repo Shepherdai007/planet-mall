@@ -35,6 +35,7 @@ export default function PostFoodPage() {
     category:    FOOD_CATEGORIES[0],
     price:       "",
     currency:    "CAD",
+    priceType:   "fixed" as "fixed"|"negotiable"|"contact",
     prepTime:    "30 mins",
     city:        "",
     province:    "Ontario",
@@ -59,6 +60,7 @@ export default function PostFoodPage() {
         category:    listing.category,
         price:       String(listing.price),
         currency:    listing.currency || "CAD",
+        priceType:   listing.priceType || "fixed",
         prepTime:    listing.prepTime || "30 mins",
         city:        listing.city,
         province:    listing.province,
@@ -124,6 +126,7 @@ export default function PostFoodPage() {
         category:    form.category,
         price:       parseFloat(form.price) || 0,
         currency:    form.currency,
+        priceType:   form.priceType,
         prepTime:    form.prepTime,
         images:      allImages,
         city:        form.city,
@@ -219,19 +222,40 @@ export default function PostFoodPage() {
               {/* Price */}
               <div className="p-6 rounded-2xl space-y-3" style={{background:"#fff",border:"1px solid #E8E2D9"}}>
                 <h2 className="font-syne font-bold text-lg" style={{color:"#1A1714"}}>Price</h2>
-                <select className={inp} style={inpStyle} value={form.currency} onChange={e=>up("currency",e.target.value)}>
-                  {[
-                    {code:"CAD", label:"🇨🇦 CAD — Canadian Dollar"},
-                    {code:"USD", label:"🇺🇸 USD — US Dollar"},
-                    {code:"GBP", label:"🇬🇧 GBP — British Pound"},
-                    {code:"GHS", label:"🇬🇭 GHS — Ghanaian Cedi"},
-                    {code:"NGN", label:"🇳🇬 NGN — Nigerian Naira"},
-                  ].map(c => <option key={c.code} value={c.code}>{c.label}</option>)}
-                </select>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-dm-sans font-semibold text-sm" style={{color:"#8A8480"}}>{form.currency}</span>
-                  <input className={`${inp} pl-16`} style={inpStyle} type="number" value={form.price} onChange={e=>up("price",e.target.value)} placeholder="0.00" />
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    {v:"fixed",      label:"Fixed price"},
+                    {v:"negotiable", label:"Negotiable"},
+                    {v:"contact",    label:"Contact for price"},
+                  ] as const).map(({v,label})=>(
+                    <button key={v} type="button" onClick={()=>up("priceType",v)}
+                      className="py-2.5 rounded-xl text-xs font-dm-sans font-medium transition-all"
+                      style={{
+                        background: form.priceType===v?"#C4531A":"#F6F1E9",
+                        color:      form.priceType===v?"#fff":"#8A8480",
+                        border:     `1px solid ${form.priceType===v?"#C4531A":"#D4CFC6"}`,
+                      }}>
+                      {label}
+                    </button>
+                  ))}
                 </div>
+                {form.priceType !== "contact" && (
+                  <>
+                    <select className={inp} style={inpStyle} value={form.currency} onChange={e=>up("currency",e.target.value)}>
+                      {[
+                        {code:"CAD", label:"🇨🇦 CAD — Canadian Dollar"},
+                        {code:"USD", label:"🇺🇸 USD — US Dollar"},
+                        {code:"GBP", label:"🇬🇧 GBP — British Pound"},
+                        {code:"GHS", label:"🇬🇭 GHS — Ghanaian Cedi"},
+                        {code:"NGN", label:"🇳🇬 NGN — Nigerian Naira"},
+                      ].map(c => <option key={c.code} value={c.code}>{c.label}</option>)}
+                    </select>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 font-dm-sans font-semibold text-sm" style={{color:"#8A8480"}}>{form.currency}</span>
+                      <input className={`${inp} pl-16`} style={inpStyle} type="number" value={form.price} onChange={e=>up("price",e.target.value)} placeholder="0.00" />
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Location */}
