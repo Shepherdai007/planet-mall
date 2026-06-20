@@ -14,6 +14,7 @@ import { formatCurrency, timeAgo }   from "@/lib/helpers";
 import { getOrCreateConversation }   from "@/services/messageService";
 import ReportButton   from "@/components/ReportButton";
 import ShareButton    from "@/components/ShareButton";
+import ContactSellerCard from "@/components/ContactSellerCard";
 import BuyerProtectionBadge from "@/components/BuyerProtectionBadge";
 import toast          from "react-hot-toast";
 import type { Classified } from "@/services/classifiedService";
@@ -369,6 +370,10 @@ export default function ClassifiedDetailPage({ ogData }: { ogData?: any }) {
                         ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Opening chat...</>
                         : "💬 Message seller"}
                     </button>
+                  )}
+
+                  {!isOwner && listing.status !== "sold" && (
+                    <ContactSellerCard phone={listing.phone} whatsapp={listing.whatsapp} />
                   )}
 
                   {isOwner && (

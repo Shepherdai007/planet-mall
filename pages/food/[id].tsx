@@ -15,6 +15,7 @@ import { getOrCreateConversation } from "@/services/messageService";
 import { timeAgo }    from "@/lib/helpers";
 import ShareButton    from "@/components/ShareButton";
 import ReportButton   from "@/components/ReportButton";
+import ContactSellerCard from "@/components/ContactSellerCard";
 import BuyerProtectionBadge from "@/components/BuyerProtectionBadge";
 import toast           from "react-hot-toast";
 import type { FoodListing } from "@/services/foodListingService";
@@ -216,6 +217,9 @@ export default function FoodDetailPage({ ogData }: { ogData?: any }) {
                         style={{borderColor:"#D4CFC6",color:"#8A8480"}}>
                         {messaging ? "Opening chat..." : "💬 Message seller"}
                       </button>
+                      <div className="mt-3">
+                        <ContactSellerCard phone={listing.phone} whatsapp={listing.whatsapp} />
+                      </div>
                     </>
                   )}
 

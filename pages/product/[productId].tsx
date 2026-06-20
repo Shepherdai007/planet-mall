@@ -16,6 +16,7 @@ import { formatCurrency } from "@/lib/helpers";
 import { getOrCreateConversation } from "@/services/messageService";
 import ShareButton from "@/components/ShareButton";
 import ReviewSection from "@/components/ReviewSection";
+import ContactSellerCard from "@/components/ContactSellerCard";
 import BuyerProtectionBadge from "@/components/BuyerProtectionBadge";
 import ReportButton from "@/components/ReportButton";
 import type { ProductData } from "@/services/productService";
@@ -200,6 +201,13 @@ export default function ProductPage({ ogData }: { ogData?: any }) {
                       ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Opening chat...</>
                       : <>💬 Message {shop.name}</>}
                   </button>
+                )}
+
+                {/* WhatsApp seller */}
+                {shop && user?.uid !== shop.ownerId && shop.whatsapp && (
+                  <div className="mt-3">
+                    <ContactSellerCard whatsapp={shop.whatsapp} />
+                  </div>
                 )}
 
                 {/* Share product */}
