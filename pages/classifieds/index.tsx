@@ -164,6 +164,21 @@ export default function ClassifiedsPage() {
               </Link>
             </div>
 
+            {/* Insurance quote banner */}
+            <div className="mb-6 p-4 rounded-2xl flex items-center gap-4"
+              style={{background:"rgba(42,107,69,0.06)",border:"1px solid rgba(42,107,69,0.15)"}}>
+              <span className="text-3xl flex-shrink-0">🛡️</span>
+              <div className="flex-1 min-w-0">
+                <p className="font-dm-sans font-bold text-sm" style={{color:"#1A1714"}}>Looking for insurance?</p>
+                <p className="text-xs font-dm-sans" style={{color:"#8A8480"}}>Get a free quote from verified local brokers — auto, home, life & more</p>
+              </div>
+              <Link href="/insurance/request"
+                className="flex-shrink-0 px-4 py-2 rounded-xl text-white text-xs font-dm-sans font-bold"
+                style={{background:"#2A6B45"}}>
+                Get a quote
+              </Link>
+            </div>
+
             {/* Listings grid */}
             {loading ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">

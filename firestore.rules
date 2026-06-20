@@ -125,6 +125,22 @@ service cloud.firestore {
       allow delete: if ownsShop(resource.data.shopId);
     }
 
+    // ── Insurance requests (buyer leads) ───────────────────────────
+    match /insuranceRequests/{requestId} {
+      allow read:   if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.buyerId == request.auth.uid;
+      allow update: if request.auth != null;  // brokers mark contacted, status updates
+      allow delete: if request.auth != null && resource.data.buyerId == request.auth.uid;
+    }
+
+    // ── Insurance brokers (directory + applications) ────────────────
+    match /insuranceBrokers/{brokerId} {
+      allow read:   if true;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
     // ── Fallback: deny everything else ────────────────────────────
     match /{document=**} {
       allow read, write: if false;
