@@ -50,6 +50,8 @@ export const CLASSIFIED_CATEGORIES = {
   "Home & Garden":       ["Furniture", "Appliances", "Tools", "Garden", "Decor", "Other"],
   "Pets":                ["Dogs", "Cats", "Birds", "Fish", "Small Animals", "Pet Supplies"],
   "Sports & Outdoors":   ["Exercise Equipment", "Bikes", "Winter Sports", "Team Sports", "Camping", "Other"],
+  "Collision Repair":    ["Auto Body Repair", "Paint & Refinishing", "Dent Removal", "Windshield Repair", "Frame Straightening", "Other"],
+  "Taxi Service":        ["Local Rides", "Airport Transfer", "Long Distance", "Delivery & Courier", "Charter & Group", "Other"],
   "Free Stuff":          ["Free Stuff"],
   "Other":               ["Miscellaneous"],
 };

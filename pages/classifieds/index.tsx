@@ -285,6 +285,8 @@ function getCategoryIcon(cat: string): string {
     "Home & Garden":    "🛋",
     "Pets":             "🐾",
     "Sports & Outdoors":"⚽",
+    "Collision Repair": "🔨",
+    "Taxi Service":     "🚕",
     "Free Stuff":       "🎁",
     "Other":            "📦",
   };
