@@ -52,12 +52,17 @@ export default function ClassifiedDetailPage({ ogData }: { ogData?: any }) {
       setLoading(false);
       if (l?.category) {
         getClassifieds({ category: l.category, limit: 5 })
-          .then(results => setSimilar(results.filter(r => r.id !== id)));
+          .then(results => setSimilar(results.filter(r => r.id !== id)))
+          .catch(() => {});
       }
       if (l?.sellerId) {
-        getSellerRatingSummary(l.sellerId).then(setRatingSum);
-        getSellerReviews(l.sellerId).then(setReviews);
+        getSellerRatingSummary(l.sellerId).then(setRatingSum).catch(() => {});
+        getSellerReviews(l.sellerId).then(setReviews).catch(() => {});
       }
+    }).catch(err => {
+      console.error("Failed to load classified:", err);
+      setListing(null);
+      setLoading(false);
     });
   }, [id]);
 

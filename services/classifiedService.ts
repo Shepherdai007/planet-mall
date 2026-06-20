@@ -130,8 +130,8 @@ export async function getClassifieds(filters: {
 export async function getClassified(id: string): Promise<Classified | null> {
   const snap = await getDoc(doc(db, "classifieds", id));
   if (!snap.exists()) return null;
-  // Increment views
-  await updateDoc(doc(db, "classifieds", id), { views: (snap.data().views || 0) + 1 });
+  // Increment views — fire and forget, never block the page on this
+  updateDoc(doc(db, "classifieds", id), { views: (snap.data().views || 0) + 1 }).catch(() => {});
   return { id: snap.id, ...snap.data() } as Classified;
 }
 

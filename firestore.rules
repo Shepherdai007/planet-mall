@@ -125,6 +125,34 @@ service cloud.firestore {
       allow delete: if ownsShop(resource.data.shopId);
     }
 
+    // ── Classifieds (Kijiji-style listings) ─────────────────────────
+    match /classifieds/{listingId} {
+      allow read:   if true;   // public — must work for logged-out visitors clicking shared links
+      allow create: if request.auth != null && request.resource.data.sellerId == request.auth.uid;
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null && resource.data.sellerId == request.auth.uid;
+    }
+
+    // ── Standalone food listings ──────────────────────────────────
+    match /foodListings/{listingId} {
+      allow read:   if true;
+      allow create: if request.auth != null && request.resource.data.sellerId == request.auth.uid;
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null && resource.data.sellerId == request.auth.uid;
+    }
+
+    // ── Saved / favourite listings ──────────────────────────────────
+    match /favorites/{userId}/items/{itemId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // ── Seller ratings ──────────────────────────────────────────────
+    match /sellerRatings/{sellerId}/reviews/{reviewId} {
+      allow read:   if true;
+      allow create: if request.auth != null && request.resource.data.reviewerId == request.auth.uid;
+      allow update: if request.auth != null && resource.data.reviewerId == request.auth.uid;
+    }
+
     // ── Insurance requests (buyer leads) ───────────────────────────
     match /insuranceRequests/{requestId} {
       allow read:   if request.auth != null;
