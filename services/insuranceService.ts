@@ -42,6 +42,7 @@ export interface InsuranceBroker {
   phone:          string;
   bio:            string;
   verified:       boolean;      // admin-approved
+  isPro:          boolean;      // paid CA$19/month subscription — unlocks unlimited full-contact leads
   createdAt:      unknown;
 }
 
@@ -76,6 +77,19 @@ export async function submitInsuranceRequest(
   ));
 
   return ref.id;
+}
+
+export const FREE_TIER_LEAD_LIMIT = 3;
+
+// ── Count how many leads a free broker has already unlocked this month ──
+export async function getFreeLeadCountThisMonth(brokerId: string): Promise<number> {
+  const snap = await getDocs(query(
+    collection(db, "insuranceRequests"),
+    where("respondedBy", "array-contains", brokerId)
+  ));
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime() / 1000;
+  return snap.docs.filter(d => (d.data().createdAt?.seconds || 0) >= monthStart).length;
 }
 
 // ── Get all requests (for broker dashboard) ────────────────────────
@@ -120,10 +134,11 @@ export async function markRequestContacted(requestId: string, brokerId: string):
 }
 
 // ── Register as a broker (pending verification) ─────────────────────
-export async function registerBroker(data: Omit<InsuranceBroker, "id" | "createdAt" | "verified">): Promise<void> {
+export async function registerBroker(data: Omit<InsuranceBroker, "id" | "createdAt" | "verified" | "isPro">): Promise<void> {
   await addDoc(collection(db, "insuranceBrokers"), {
     ...data,
     verified:  false,   // admin must verify before they appear/get leads
+    isPro:     false,   // free tier by default — limited leads
     createdAt: serverTimestamp(),
   });
 }

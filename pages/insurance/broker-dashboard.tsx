@@ -13,6 +13,7 @@ import Layout           from "@/components/Layout";
 import { useAuth }      from "@/context/AuthContext";
 import {
   getInsuranceRequests, markRequestContacted, getBrokerProfile, INSURANCE_TYPES,
+  getFreeLeadCountThisMonth, FREE_TIER_LEAD_LIMIT,
 } from "@/services/insuranceService";
 import { getOrCreateConversation } from "@/services/messageService";
 import { timeAgo }      from "@/lib/helpers";
@@ -31,6 +32,7 @@ export default function BrokerDashboardPage() {
   const [fetching, setFetching] = useState(true);
   const [filter,   setFilter]   = useState("All");
   const [messaging, setMessaging] = useState<string | null>(null);
+  const [leadsUsed, setLeadsUsed] = useState(0);
 
   useEffect(() => {
     if (loading) return;
@@ -39,7 +41,10 @@ export default function BrokerDashboardPage() {
     getBrokerProfile(user.uid).then(b => {
       setBroker(b);
       setChecking(false);
-      if (b?.verified) loadRequests();
+      if (b?.verified) {
+        loadRequests();
+        if (!b.isPro) getFreeLeadCountThisMonth(user.uid).then(setLeadsUsed);
+      }
     });
   }, [user, isLoggedIn, loading]);
 
@@ -123,10 +128,38 @@ export default function BrokerDashboardPage() {
                   Welcome back, {broker.brokerName} · {broker.specialties.join(", ")}
                 </p>
               </div>
-              <span className="px-3 py-1.5 rounded-full text-xs font-dm-sans font-bold" style={{background:"rgba(42,107,69,0.15)",color:"#2A6B45"}}>
-                ✓ Verified
-              </span>
+              <div className="flex items-center gap-2">
+                {broker.isPro && (
+                  <span className="px-3 py-1.5 rounded-full text-xs font-dm-sans font-bold" style={{background:"rgba(212,168,75,0.15)",color:"#D4A84B"}}>
+                    ⭐ Pro
+                  </span>
+                )}
+                <span className="px-3 py-1.5 rounded-full text-xs font-dm-sans font-bold" style={{background:"rgba(42,107,69,0.15)",color:"#2A6B45"}}>
+                  ✓ Verified
+                </span>
+              </div>
             </div>
+
+            {/* Upgrade banner for free brokers */}
+            {!broker.isPro && (
+              <div className="mb-6 p-5 rounded-2xl flex items-center gap-4"
+                style={{background:"linear-gradient(135deg,rgba(212,168,75,0.1),rgba(196,83,26,0.08))",border:"1px solid rgba(212,168,75,0.25)"}}>
+                <span className="text-3xl flex-shrink-0">⭐</span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-dm-sans font-bold text-sm text-paper">
+                    {leadsUsed} of {FREE_TIER_LEAD_LIMIT} free leads used this month
+                  </p>
+                  <p className="text-xs font-dm-sans text-muted mt-0.5">
+                    Upgrade to Pro for unlimited leads + full contact details — CA$19/month
+                  </p>
+                </div>
+                <Link href="/insurance/upgrade"
+                  className="flex-shrink-0 px-4 py-2.5 rounded-xl text-white text-xs font-dm-sans font-bold"
+                  style={{background:"#C4531A"}}>
+                  Upgrade now
+                </Link>
+              </div>
+            )}
 
             {/* Filter tabs */}
             <div className="flex gap-2 overflow-x-auto pb-2 mb-6">
@@ -154,7 +187,10 @@ export default function BrokerDashboardPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {filtered.map(req => (
+                {filtered.map((req, idx) => {
+                  const isLocked = !broker.isPro && idx >= FREE_TIER_LEAD_LIMIT - leadsUsed && !req.respondedBy.includes(user!.uid);
+
+                  return (
                   <div key={req.id} className="p-5 rounded-2xl"
                     style={{
                       background: req.status === "open" ? "rgba(196,83,26,0.04)" : "rgba(255,255,255,0.02)",
@@ -164,7 +200,7 @@ export default function BrokerDashboardPage() {
                       <div className="flex items-center gap-3">
                         <span className="text-2xl">{TYPE_ICONS[req.insuranceType]}</span>
                         <div>
-                          <p className="font-dm-sans font-semibold text-paper">{req.fullName}</p>
+                          <p className="font-dm-sans font-semibold text-paper">{isLocked ? "🔒 Locked lead" : req.fullName}</p>
                           <p className="text-xs text-muted font-dm-sans">
                             {req.insuranceType} Insurance · 📍 {req.city}, {req.province} · {timeAgo(req.createdAt as any)}
                           </p>
@@ -185,29 +221,42 @@ export default function BrokerDashboardPage() {
                       <p className="text-sm font-dm-sans text-paper/70 mb-3 pl-11">{req.details}</p>
                     )}
 
-                    <div className="flex items-center gap-4 pl-11 mb-3 text-xs font-dm-sans text-muted">
-                      <span>📞 {req.phone}</span>
-                      {req.email && <span>✉️ {req.email}</span>}
-                    </div>
+                    {isLocked ? (
+                      <div className="pl-11">
+                        <Link href="/insurance/upgrade"
+                          className="inline-block px-4 py-2 rounded-xl text-xs font-dm-sans font-bold text-white"
+                          style={{background:"#C4531A"}}>
+                          ⭐ Upgrade to unlock contact info
+                        </Link>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-4 pl-11 mb-3 text-xs font-dm-sans text-muted">
+                          <span>📞 {req.phone}</span>
+                          {req.email && <span>✉️ {req.email}</span>}
+                        </div>
 
-                    <div className="flex gap-2 pl-11">
-                      <a href={`tel:${req.phone}`}
-                        className="px-4 py-2 rounded-xl text-xs font-dm-sans font-semibold text-white" style={{background:"#2A6B45"}}>
-                        📞 Call
-                      </a>
-                      <button onClick={()=>handleMessage(req)} disabled={messaging===req.id}
-                        className="px-4 py-2 rounded-xl text-xs font-dm-sans font-semibold text-white disabled:opacity-50" style={{background:"#C4531A"}}>
-                        {messaging===req.id ? "Opening..." : "💬 Message"}
-                      </button>
-                      {req.status === "open" && (
-                        <button onClick={()=>handleMarkContacted(req.id!)}
-                          className="px-4 py-2 rounded-xl text-xs font-dm-sans font-semibold border" style={{borderColor:"rgba(255,255,255,0.1)",color:"#8A8480"}}>
-                          Mark as contacted
-                        </button>
-                      )}
-                    </div>
+                        <div className="flex gap-2 pl-11">
+                          <a href={`tel:${req.phone}`}
+                            className="px-4 py-2 rounded-xl text-xs font-dm-sans font-semibold text-white" style={{background:"#2A6B45"}}>
+                            📞 Call
+                          </a>
+                          <button onClick={()=>handleMessage(req)} disabled={messaging===req.id}
+                            className="px-4 py-2 rounded-xl text-xs font-dm-sans font-semibold text-white disabled:opacity-50" style={{background:"#C4531A"}}>
+                            {messaging===req.id ? "Opening..." : "💬 Message"}
+                          </button>
+                          {req.status === "open" && (
+                            <button onClick={()=>{ handleMarkContacted(req.id!); if (!broker.isPro) setLeadsUsed(n => n+1); }}
+                              className="px-4 py-2 rounded-xl text-xs font-dm-sans font-semibold border" style={{borderColor:"rgba(255,255,255,0.1)",color:"#8A8480"}}>
+                              Mark as contacted
+                            </button>
+                          )}
+                        </div>
+                      </>
+                    )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

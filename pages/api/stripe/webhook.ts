@@ -49,6 +49,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         cancelAtPeriodEnd:      false,
         updatedAt:              new Date(),
       }, { merge: true });
+
+      // Insurance broker Pro plan — unlock full lead contact info
+      if (plan === "broker") {
+        const brokerSnap = await adminDb.collection("insuranceBrokers")
+          .where("userId", "==", userId).limit(1).get();
+        if (!brokerSnap.empty) {
+          await brokerSnap.docs[0].ref.update({ isPro: true, updatedAt: new Date() });
+        }
+      }
       break;
     }
 
@@ -76,6 +85,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         status:    "cancelled",
         updatedAt: new Date(),
       });
+
+      // Downgrade broker — revert to limited free tier
+      const brokerSnap = await adminDb.collection("insuranceBrokers")
+        .where("userId", "==", userId).limit(1).get();
+      if (!brokerSnap.empty) {
+        await brokerSnap.docs[0].ref.update({ isPro: false, updatedAt: new Date() });
+      }
       break;
     }
   }
