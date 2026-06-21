@@ -51,6 +51,23 @@ service firebase.storage {
                    && request.resource.contentType.matches('image/.*');
     }
 
+    // ── Resumes (AI-generated, server-uploaded via Admin SDK) ──────
+    // Path: /resumes/{userId}/...
+    match /resumes/{userId}/{allPaths=**} {
+      allow read:  if true;   // employers need to view applicant resumes
+      allow write: if false;  // only written server-side via Admin SDK
+    }
+
+    // ── Job application resume uploads ──────────────────────────────
+    // Path: /applications/{userId}/...
+    match /applications/{userId}/{allPaths=**} {
+      allow read: if true;   // employer needs to view; gate via app-level checks
+      allow write: if request.auth != null && request.auth.uid == userId
+                   && request.resource.size < 10 * 1024 * 1024   // 10MB max
+                   && (request.resource.contentType == 'application/pdf'
+                      || request.resource.contentType.matches('application/.*word.*'));
+    }
+
     // ── Status / story photos & videos ───────────────────────────
     // Path: /status/{uid}/...
     match /status/{uid}/{allPaths=**} {

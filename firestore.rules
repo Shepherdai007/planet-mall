@@ -158,6 +158,36 @@ service cloud.firestore {
       allow update: if request.auth != null && resource.data.reviewerId == request.auth.uid;
     }
 
+    // ── Job postings ───────────────────────────────────────────────
+    match /jobs/{jobId} {
+      allow read:   if true;   // public — must work for logged-out visitors
+      allow create: if request.auth != null && request.resource.data.employerId == request.auth.uid;
+      allow update: if request.auth != null;   // owner edits, views increment, applicantCount increment
+      allow delete: if request.auth != null && resource.data.employerId == request.auth.uid;
+    }
+
+    // ── Job applications ─────────────────────────────────────────────
+    match /jobApplications/{appId} {
+      allow read:   if request.auth != null &&
+        (resource.data.applicantId == request.auth.uid || resource.data.employerId == request.auth.uid);
+      allow create: if request.auth != null && request.resource.data.applicantId == request.auth.uid;
+      allow update: if request.auth != null && resource.data.employerId == request.auth.uid;
+      allow delete: if request.auth != null && resource.data.applicantId == request.auth.uid;
+    }
+
+    // ── AI-built resumes ─────────────────────────────────────────────
+    match /resumes/{resumeId} {
+      allow read:   if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // ── One-time payment receipts (audit trail) ───────────────────────
+    match /paymentReceipts/{receiptId} {
+      allow read:  if request.auth != null && resource.data.userId == request.auth.uid;
+      allow write: if false;   // only the webhook (admin SDK) writes these
+    }
+
     // ── Insurance requests (buyer leads) ───────────────────────────
     match /insuranceRequests/{requestId} {
       allow read:   if request.auth != null;
