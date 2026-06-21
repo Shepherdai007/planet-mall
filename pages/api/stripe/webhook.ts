@@ -34,7 +34,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const session  = event.data.object as any;
       const userId   = session.metadata?.userId;
       const plan     = session.metadata?.plan;
+      const product  = session.metadata?.product;   // one-time payments: job_post, resume_builder, boost_listing
       const subId    = session.subscription;
+
+      // ── One-time payments (job posting, resume builder, listing boost) ──
+      if (product && userId) {
+        const refId = session.metadata?.refId || "";
+        await adminDb.collection("paymentReceipts").add({
+          userId, product, refId,
+          amount:    session.amount_total,
+          stripeSessionId: session.id,
+          createdAt: new Date(),
+        });
+        // Mark the pending job/resume as paid — actual record creation
+        // happens client-side on the success page using the session_id
+        // as proof of payment, then this receipt is the audit trail.
+        break;
+      }
+
       if (!userId || !plan) break;
 
       await adminDb.doc(`subscriptions/${userId}`).set({
