@@ -27,6 +27,8 @@ export default function TipsterProfilePage() {
     twitter:   "",
     instagram: "",
     youtube:   "",
+    facebook:  "",
+    threads:   "",
   });
 
   useEffect(() => {
@@ -42,6 +44,8 @@ export default function TipsterProfilePage() {
           twitter:   t.twitter || "",
           instagram: t.instagram || "",
           youtube:   t.youtube || "",
+          facebook:  t.facebook || "",
+          threads:   t.threads || "",
         });
       } else {
         setForm(f => ({ ...f, name: userDoc?.displayName || "" }));
@@ -148,6 +152,14 @@ export default function TipsterProfilePage() {
                 <div className="flex items-center gap-3">
                   <span className="text-xl w-8">▶️</span>
                   <input className={inp} style={inpStyle} value={form.youtube} onChange={e=>up("youtube",e.target.value)} placeholder="YouTube channel link" />
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xl w-8">📘</span>
+                  <input className={inp} style={inpStyle} value={form.facebook} onChange={e=>up("facebook",e.target.value)} placeholder="Facebook page link" />
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xl w-8">🧵</span>
+                  <input className={inp} style={inpStyle} value={form.threads} onChange={e=>up("threads",e.target.value)} placeholder="Threads handle (@...)" />
                 </div>
               </div>
 

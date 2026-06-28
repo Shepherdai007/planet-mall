@@ -39,6 +39,8 @@ export interface Tipster {
   twitter:      string;
   instagram:    string;
   youtube:      string;
+  facebook:     string;
+  threads:      string;
   createdAt:    unknown;
 }
 
@@ -106,6 +108,35 @@ export interface PickPurchase {
 }
 
 export const COMMISSION_RATE = 0.05; // 5%
+
+// ── Follow / unfollow a tipster ───────────────────────────────────
+export async function followTipster(tipsterId: string, userId: string): Promise<void> {
+  await addDoc(collection(db, "tipsterFollows"), {
+    tipsterId, userId, createdAt: serverTimestamp(),
+  });
+  const snap = await getDocs(query(collection(db, "tipsters"), where("userId", "==", tipsterId)));
+  if (!snap.empty) await updateDoc(snap.docs[0].ref, { followers: increment(1) });
+}
+
+export async function unfollowTipster(tipsterId: string, userId: string): Promise<void> {
+  const snap = await getDocs(query(
+    collection(db, "tipsterFollows"),
+    where("tipsterId", "==", tipsterId),
+    where("userId", "==", userId)
+  ));
+  await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
+  const tipSnap = await getDocs(query(collection(db, "tipsters"), where("userId", "==", tipsterId)));
+  if (!tipSnap.empty) await updateDoc(tipSnap.docs[0].ref, { followers: increment(-1) });
+}
+
+export async function isFollowingTipster(tipsterId: string, userId: string): Promise<boolean> {
+  const snap = await getDocs(query(
+    collection(db, "tipsterFollows"),
+    where("tipsterId", "==", tipsterId),
+    where("userId", "==", userId)
+  ));
+  return !snap.empty;
+}
 
 // ── Tipster CRUD ──────────────────────────────────────────────────
 export async function createTipsterProfile(data: Omit<Tipster, "id" | "createdAt" | "winCount" | "lossCount" | "totalPicks" | "followers" | "verified">): Promise<void> {

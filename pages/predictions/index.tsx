@@ -8,7 +8,8 @@ import Link           from "next/link";
 import { useEffect, useState } from "react";
 import Layout          from "@/components/Layout";
 import { useAuth }     from "@/context/AuthContext";
-import { getPredictions, getVIPPicks, getAllTipsters, SPORTS, likePrediction } from "@/services/predictionService";
+import { getPredictions, getVIPPicks, getAllTipsters, SPORTS, likePrediction, followTipster, unfollowTipster, isFollowingTipster } from "@/services/predictionService";
+import { getTeamDisplay, getLeagueFlag } from "@/lib/countryFlags";
 import { timeAgo }     from "@/lib/helpers";
 import toast           from "react-hot-toast";
 import type { Prediction, VIPPick, Tipster } from "@/services/predictionService";
@@ -169,12 +170,12 @@ export default function PredictionsPage() {
                         {/* Match */}
                         <div className="px-4 py-3">
                           <p className="text-xs font-dm-sans mb-2" style={{color:"#8A8480"}}>
-                            📅 {p.matchDate} · {p.matchTime} · {p.league}
+                            {getLeagueFlag(p.league)} {p.league} · 📅 {p.matchDate} {p.matchTime}
                           </p>
                           <div className="flex items-center justify-between mb-3">
-                            <span className="font-syne font-bold text-paper">{p.homeTeam}</span>
+                            <span className="font-syne font-bold text-paper">{getTeamDisplay(p.homeTeam)}</span>
                             <span className="text-xs font-dm-sans px-2" style={{color:"#8A8480"}}>vs</span>
-                            <span className="font-syne font-bold text-paper">{p.awayTeam}</span>
+                            <span className="font-syne font-bold text-paper">{getTeamDisplay(p.awayTeam)}</span>
                           </div>
 
                           {/* Tip + Odds */}
@@ -196,9 +197,22 @@ export default function PredictionsPage() {
                               style={{background:`${RESULT_COLORS[p.result]}20`,color:RESULT_COLORS[p.result]}}>
                               {RESULT_LABELS[p.result]}
                             </span>
-                            <button onClick={()=>handleLike(p.id!)} className="flex items-center gap-1.5 text-xs font-dm-sans" style={{color:"#8A8480"}}>
-                              ❤️ {p.likes}
-                            </button>
+                            <div className="flex items-center gap-3">
+                              <button onClick={()=>handleLike(p.id!)} className="flex items-center gap-1 text-xs font-dm-sans" style={{color:"#8A8480"}}>
+                                ❤️ {p.likes}
+                              </button>
+                              <button onClick={()=>{
+                                const url = `${window.location.origin}/predictions`;
+                                if (navigator.share) {
+                                  navigator.share({ title: `${p.homeTeam} vs ${p.awayTeam}`, text: `🎯 Tip: ${p.tip} @ ${p.odds}`, url });
+                                } else {
+                                  navigator.clipboard.writeText(url);
+                                  toast.success("Link copied!");
+                                }
+                              }} className="text-xs font-dm-sans" style={{color:"#8A8480"}}>
+                                📤 Share
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -288,8 +302,19 @@ export default function PredictionsPage() {
                               <span className="text-[10px] font-dm-sans" style={{color:"#8A8480"}}>{t.followers} followers</span>
                             </div>
                           </div>
-                          <div className="text-right flex-shrink-0">
+                          <div className="flex flex-col items-end gap-2 flex-shrink-0">
                             <p className="font-syne font-bold text-lg" style={{color: winRate >= 60 ? "#2A6B45" : winRate >= 40 ? "#D4A84B" : "#C4531A"}}>{winRate}%</p>
+                            {user && user.uid !== t.userId && (
+                              <button onClick={async (e) => {
+                                e.preventDefault();
+                                if (!isLoggedIn) { toast.error("Sign in to follow"); return; }
+                                await followTipster(t.userId, user.uid);
+                                toast.success(`Following ${t.name}!`);
+                              }} className="px-3 py-1 rounded-full text-[10px] font-dm-sans font-bold"
+                                style={{background:"rgba(196,83,26,0.15)",color:"#C4531A",border:"1px solid rgba(196,83,26,0.3)"}}>
+                                + Follow
+                              </button>
+                            )}
                           </div>
                         </Link>
                       );
