@@ -131,6 +131,19 @@ export default function RoomPage() {
   async function startVoiceCall() {
     if (!AgoraRTC || !room) return;
     try {
+      // Get token from server first
+      const tokenRes = await fetch("/api/agora-token", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({
+          channelName: room.agoraChannel,
+          uid:         0,
+          role:        "host",
+        }),
+      });
+      const { token } = await tokenRes.json();
+      if (!token) { toast.error("Could not get call token"); return; }
+
       const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
       clientRef.current = client;
 
@@ -143,7 +156,7 @@ export default function RoomPage() {
         setCallMembers(prev => prev.filter(id => id !== remoteUser.uid.toString()));
       });
 
-      await client.join(AGORA_APP_ID, room.agoraChannel, null, user!.uid);
+      await client.join(AGORA_APP_ID, room.agoraChannel, token, user!.uid);
       const micTrack = await AgoraRTC.createMicrophoneAudioTrack();
       micTrackRef.current = micTrack;
       await client.publish([micTrack]);

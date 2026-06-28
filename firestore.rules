@@ -237,6 +237,25 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ── Planet Rooms ──────────────────────────────────────────────
+    match /rooms/{roomId} {
+      allow read:   if true;
+      allow create: if isAuth() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if isAuth();
+      allow delete: if isAuth() && resource.data.ownerId == request.auth.uid;
+
+      match /messages/{msgId} {
+        allow read:   if isAuth();
+        allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+        allow update, delete: if false;
+      }
+
+      match /members/{userId} {
+        allow read:  if isAuth();
+        allow write: if isAuth();
+      }
+    }
+
     // ── Fallback: deny everything else ────────────────────────────
     match /{document=**} {
       allow read, write: if false;
