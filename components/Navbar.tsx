@@ -47,6 +47,7 @@ export default function Navbar() {
     { href:"/classifieds",      label:"Classifieds" },
     { href:"/food",             label:"🍽 Food" },
     { href:"/jobs",             label:"💼 Jobs" },
+    { href:"/predictions",      label:"🏆 Predictions" },
     { href:"/livestreams",      label:"🔴 Live" },
     { href:"/messages",         label:"Messages" },
     { href:"/pricing",          label:"Pricing" },
