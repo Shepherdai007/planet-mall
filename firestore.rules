@@ -201,6 +201,36 @@ service cloud.firestore {
       allow delete: if request.auth != null && (resource.data.userId == request.auth.uid || isAdmin());
     }
 
+    // ── Sports predictions ────────────────────────────────────────
+    match /tipsters/{tipsterId} {
+      allow read:   if true;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update: if request.auth != null && (resource.data.userId == request.auth.uid || isAdmin());
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    match /predictions/{predictionId} {
+      allow read:   if true;
+      allow create: if request.auth != null && request.resource.data.tipsterId == request.auth.uid;
+      allow update: if request.auth != null;   // likes, result updates
+      allow delete: if request.auth != null && resource.data.tipsterId == request.auth.uid;
+    }
+
+    match /vipPicks/{pickId} {
+      allow read:   if true;   // teaser is public, picksContent revealed in app after purchase check
+      allow create: if request.auth != null && request.resource.data.tipsterId == request.auth.uid;
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null && resource.data.tipsterId == request.auth.uid;
+    }
+
+    match /pickPurchases/{purchaseId} {
+      allow read:   if request.auth != null &&
+        (resource.data.buyerId == request.auth.uid || resource.data.tipsterId == request.auth.uid);
+      allow create: if request.auth != null && request.resource.data.buyerId == request.auth.uid;
+      allow update: if request.auth != null && resource.data.buyerId == request.auth.uid;
+      allow delete: if false;
+    }
+
     // ── Fallback: deny everything else ────────────────────────────
     match /{document=**} {
       allow read, write: if false;
