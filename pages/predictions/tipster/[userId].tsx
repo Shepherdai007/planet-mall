@@ -276,6 +276,13 @@ export default function TipsterProfilePage() {
                         </span>
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-dm-sans" style={{color:"#8A8480"}}>❤️ {p.likes}</span>
+                          {isOwner && (
+                            <button onClick={()=>router.push(`/predictions/edit/${p.id}`)}
+                              className="px-2 py-0.5 rounded-lg text-[10px] font-bold"
+                              style={{background:"rgba(255,255,255,0.06)",color:"#8A8480"}}>
+                              ✏️ Edit
+                            </button>
+                          )}
                           {isOwner && p.result === "pending" && (
                             <div className="flex gap-1">
                               <button onClick={()=>handleUpdateResult(p.id!, "won")}
