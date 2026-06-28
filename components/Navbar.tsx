@@ -48,6 +48,7 @@ export default function Navbar() {
     { href:"/food",             label:"🍽 Food" },
     { href:"/jobs",             label:"💼 Jobs" },
     { href:"/predictions",      label:"🏆 Predictions" },
+    { href:"/rooms",            label:"🏠 Rooms" },
     { href:"/livestreams",      label:"🔴 Live" },
     { href:"/messages",         label:"Messages" },
     { href:"/pricing",          label:"Pricing" },
