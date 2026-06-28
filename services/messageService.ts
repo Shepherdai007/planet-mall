@@ -11,6 +11,7 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { sendPush } from "@/lib/sendPush";
 
 export interface Message {
   id?:         string;
@@ -52,14 +53,12 @@ export interface Conversation {
 }
 
 // ── Generate deterministic conversation ID ────────────────────────
-// If listingId provided → one chat per listing per buyer
-// Otherwise → one chat per buyer-seller pair
 export function getConversationId(uid1: string, uid2: string, listingId?: string): string {
   const base = [uid1, uid2].sort().join("_");
   return listingId ? `${base}_${listingId}` : base;
 }
 
-// ── Get or create a conversation ─────────────────────────────────
+// ── Get or create a conversation ──────────────────────────────────
 export async function getOrCreateConversation(
   buyerId:     string,
   buyerName:   string,
@@ -115,6 +114,7 @@ export async function sendMessage(
   if (conv.exists()) {
     const data = conv.data() as Conversation;
     const isSeller = message.senderId === data.sellerId;
+
     await updateDoc(convRef, {
       lastMessage:   message.text || (message.type === "product" ? "📦 Shared a product" : "📎 Attachment"),
       lastMessageAt: serverTimestamp(),
@@ -123,6 +123,21 @@ export async function sendMessage(
       unreadBuyer:   isSeller ? (data.unreadBuyer || 0) + 1 : 0,
       unreadSeller:  !isSeller ? (data.unreadSeller || 0) + 1 : 0,
     });
+
+    // ── Push notification to the recipient ────────────────────────
+    const recipientId = isSeller ? data.buyerId : data.sellerId;
+    const senderName  = message.senderName || (isSeller ? data.sellerName : data.buyerName);
+    const msgPreview  = message.text
+      ? message.text.slice(0, 80)
+      : message.type === "product" ? "📦 Shared a product" : "📎 Sent an attachment";
+
+    // Fire and forget — never block the send on push delivery
+    sendPush({
+      userId: recipientId,
+      title:  `💬 ${senderName}`,
+      body:   msgPreview,
+      url:    `https://planetmallshop.com/messages/${conversationId}`,
+    }).catch(() => {});
   }
 }
 

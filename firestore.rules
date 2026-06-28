@@ -1,5 +1,5 @@
 // firestore.rules
-// ─── FIRESTORE SECURITY RULES — PRODUCTION ──────────────────────
+// ─── FIRESTORE SECURITY RULES — PRODUCTION ───────────────────────
 // All rules default to DENY. Only listed paths are open.
 // isPremium check is used by AI features.
 // Subscriptions are write-locked — only server (Admin SDK) can write.
@@ -8,7 +8,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ── Helpers ─────────────────────────────────────────────────
+    // ── Helpers ───────────────────────────────────────────────────
     function isAuth()     { return request.auth != null; }
     function isOwner(uid) { return isAuth() && request.auth.uid == uid; }
 
@@ -35,7 +35,7 @@ service cloud.firestore {
           == "active";
     }
 
-    // ── Users ────────────────────────────────────────────────────
+    // ── Users ─────────────────────────────────────────────────────
     match /users/{uid} {
       allow read:   if isAuth();
       allow create: if isOwner(uid);
@@ -43,7 +43,7 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // ── Shops ────────────────────────────────────────────────────
+    // ── Shops ─────────────────────────────────────────────────────
     match /shops/{shopId} {
       allow read:   if true;
       allow create: if isSeller() && request.resource.data.ownerId == request.auth.uid;
@@ -51,7 +51,7 @@ service cloud.firestore {
       allow delete: if ownsShop(shopId);
     }
 
-    // ── Products ─────────────────────────────────────────────────
+    // ── Products ──────────────────────────────────────────────────
     match /products/{productId} {
       allow read:   if true;
       allow create: if isAuth() && ownsShop(request.resource.data.shopId);
@@ -59,14 +59,13 @@ service cloud.firestore {
       allow delete: if isAuth() && ownsShop(resource.data.shopId);
     }
 
-    // ── Orders ───────────────────────────────────────────────────
+    // ── Orders ────────────────────────────────────────────────────
     match /orders/{orderId} {
       allow read: if isAuth() && (
         resource.data.buyerId == request.auth.uid ||
         ownsShop(resource.data.shopId)
       );
       allow create: if isAuth() && request.resource.data.buyerId == request.auth.uid;
-      // Seller can update status — but not change amount, shop, or buyer
       allow update: if isAuth() && ownsShop(resource.data.shopId) &&
         !request.resource.data.diff(resource.data).affectedKeys()
           .hasAny(["total", "subtotal", "shopId", "buyerId"]);
@@ -94,18 +93,22 @@ service cloud.firestore {
       }
     }
 
-    // ── Subscriptions — SERVER WRITE ONLY ────────────────────────
-    // Prevents users from upgrading themselves for free.
+    // ── FCM push tokens ───────────────────────────────────────────
+    match /fcmTokens/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // ── Subscriptions — SERVER WRITE ONLY ─────────────────────────
     match /subscriptions/{uid} {
       allow read:  if isOwner(uid);
-      allow write: if false; // Only Firebase Admin SDK (server-side) may write
+      allow write: if false;
     }
 
     // ── Notifications ─────────────────────────────────────────────
     match /notifications/{uid}/items/{notifId} {
-      allow read:          if isOwner(uid);
-      allow update:        if isOwner(uid); // Mark as read
-      allow create, delete: if false;       // Server only
+      allow read:           if isOwner(uid);
+      allow update:         if isOwner(uid);
+      allow create, delete: if false;
     }
 
     // ── Analytics — SERVER WRITE ONLY ────────────────────────────
@@ -130,9 +133,9 @@ service cloud.firestore {
       allow delete: if ownsShop(resource.data.shopId);
     }
 
-    // ── Classifieds (Kijiji-style listings) ─────────────────────────
+    // ── Classifieds ───────────────────────────────────────────────
     match /classifieds/{listingId} {
-      allow read:   if true;   // public — must work for logged-out visitors clicking shared links
+      allow read:   if true;
       allow create: if request.auth != null && request.resource.data.sellerId == request.auth.uid;
       allow update: if request.auth != null;
       allow delete: if request.auth != null && resource.data.sellerId == request.auth.uid;
@@ -146,27 +149,27 @@ service cloud.firestore {
       allow delete: if request.auth != null && resource.data.sellerId == request.auth.uid;
     }
 
-    // ── Saved / favourite listings ──────────────────────────────────
+    // ── Saved / favourite listings ────────────────────────────────
     match /favorites/{userId}/items/{itemId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // ── Seller ratings ──────────────────────────────────────────────
+    // ── Seller ratings ────────────────────────────────────────────
     match /sellerRatings/{sellerId}/reviews/{reviewId} {
       allow read:   if true;
       allow create: if request.auth != null && request.resource.data.reviewerId == request.auth.uid;
       allow update: if request.auth != null && resource.data.reviewerId == request.auth.uid;
     }
 
-    // ── Job postings ───────────────────────────────────────────────
+    // ── Job postings ──────────────────────────────────────────────
     match /jobs/{jobId} {
-      allow read:   if true;   // public — must work for logged-out visitors
+      allow read:   if true;
       allow create: if request.auth != null && request.resource.data.employerId == request.auth.uid;
-      allow update: if request.auth != null;   // owner edits, views increment, applicantCount increment
+      allow update: if request.auth != null;
       allow delete: if request.auth != null && resource.data.employerId == request.auth.uid;
     }
 
-    // ── Job applications ─────────────────────────────────────────────
+    // ── Job applications ──────────────────────────────────────────
     match /jobApplications/{appId} {
       allow read:   if request.auth != null &&
         (resource.data.applicantId == request.auth.uid || resource.data.employerId == request.auth.uid);
@@ -175,28 +178,28 @@ service cloud.firestore {
       allow delete: if request.auth != null && resource.data.applicantId == request.auth.uid;
     }
 
-    // ── AI-built resumes ─────────────────────────────────────────────
+    // ── AI-built resumes ──────────────────────────────────────────
     match /resumes/{resumeId} {
       allow read:   if request.auth != null && resource.data.userId == request.auth.uid;
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
       allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
 
-    // ── One-time payment receipts (audit trail) ───────────────────────
+    // ── One-time payment receipts ─────────────────────────────────
     match /paymentReceipts/{receiptId} {
       allow read:  if request.auth != null && resource.data.userId == request.auth.uid;
-      allow write: if false;   // only the webhook (admin SDK) writes these
+      allow write: if false;
     }
 
-    // ── Insurance requests (buyer leads) ───────────────────────────
+    // ── Insurance requests ────────────────────────────────────────
     match /insuranceRequests/{requestId} {
       allow read:   if request.auth != null;
       allow create: if request.auth != null && request.resource.data.buyerId == request.auth.uid;
-      allow update: if request.auth != null;  // brokers mark contacted, status updates
+      allow update: if request.auth != null;
       allow delete: if request.auth != null && resource.data.buyerId == request.auth.uid;
     }
 
-    // ── Insurance brokers (directory + applications) ────────────────
+    // ── Insurance brokers ─────────────────────────────────────────
     match /insuranceBrokers/{brokerId} {
       allow read:   if true;
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
