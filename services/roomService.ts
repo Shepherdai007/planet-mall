@@ -15,9 +15,9 @@ import { db } from "@/lib/firebase";
 export const ROOM_COMMISSION = 0.10; // 10%
 
 export const ROOM_CATEGORIES = [
-  "Sports & Betting", "Business & Finance", "Education",
-  "Entertainment", "Health & Fitness", "Technology",
-  "Music & Arts", "Gaming", "Faith & Spirituality", "Other",
+  "Business & Finance", "Education", "Entertainment",
+  "Health & Fitness", "Technology", "Music & Arts",
+  "Gaming", "Faith & Spirituality", "Fashion & Lifestyle", "Other",
 ];
 
 // ── Interfaces ────────────────────────────────────────────────────
