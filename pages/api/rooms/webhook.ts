@@ -32,7 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (event.type === "checkout.session.completed") {
-    const session  = event.data.object as Stripe.CheckoutSession;
+    const session  = event.data.object as Stripe.Checkout.Session;
     const { roomId, userId, userName, userPhoto } = session.metadata || {};
 
     if (roomId && userId) {
