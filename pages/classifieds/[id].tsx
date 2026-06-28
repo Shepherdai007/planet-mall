@@ -67,20 +67,17 @@ export default function ClassifiedDetailPage({ ogData }: { ogData?: any }) {
     });
   }, [id]);
 
-  // Listen to saved IDs
   useEffect(() => {
     if (!user) return;
     const unsub = listenSavedIds(user.uid, ids => setIsSaved(ids.has(id as string)));
     return unsub;
   }, [user, id]);
 
-  // Check if already rated
   useEffect(() => {
     if (!user || !listing) return;
     hasUserRatedSeller(listing.sellerId, user.uid).then(setAlreadyRated);
   }, [user, listing]);
 
-  // Scroll listener for sticky bar
   useEffect(() => {
     function onScroll() { setScrolled(window.scrollY > 300); }
     window.addEventListener("scroll", onScroll);
@@ -134,15 +131,25 @@ export default function ClassifiedDetailPage({ ogData }: { ogData?: any }) {
     setMessaging(true);
     try {
       const convId = await getOrCreateConversation(
-        user.uid, userDoc?.displayName || user.displayName || "", userDoc?.photoURL || "",
-        listing.sellerId, listing.sellerName, listing.sellerPhoto,
-        listing.id!, listing.title, listing.images?.[0] || "",
-        listing.id!,   // listingId — one chat per listing
-        listing.title  // listingTitle
+        user.uid,
+        userDoc?.displayName || user.displayName || "User",
+        userDoc?.photoURL || "",
+        listing.sellerId,
+        listing.sellerName,
+        listing.sellerPhoto || "",
+        listing.sellerId,
+        listing.sellerName,
+        listing.sellerPhoto || "",
+        listing.id!,
+        listing.title
       );
       router.push(`/messages/${convId}`);
-    } catch { toast.error("Failed to open chat"); }
-    finally { setMessaging(false); }
+    } catch (err) {
+      console.error("Message error:", err);
+      toast.error("Failed to open chat");
+    } finally {
+      setMessaging(false);
+    }
   }
 
   async function handleBoost() {
@@ -152,12 +159,7 @@ export default function ClassifiedDetailPage({ ogData }: { ogData?: any }) {
       const res = await fetch("/api/stripe/create-checkout", {
         method: "POST",
         headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({
-          plan: "boost_listing",
-          userId: user.uid,
-          email: user.email,
-          listingId: listing.id,
-        }),
+        body: JSON.stringify({ plan: "boost_listing", userId: user.uid, email: user.email, listingId: listing.id }),
       });
       const data = await res.json();
       if (data.url) window.location.href = data.url;
@@ -192,25 +194,18 @@ export default function ClassifiedDetailPage({ ogData }: { ogData?: any }) {
       <Head>
         <title>{ogData?.title || listing.title} — Planet Mall Classifieds</title>
         <meta name="description" content={ogData?.description || listing.description?.slice(0,150)} />
-
-        {/* Open Graph — WhatsApp, Facebook, Telegram */}
         <meta property="og:type"         content="product" />
         <meta property="og:site_name"    content="Planet Mall" />
         <meta property="og:title"        content={ogData?.title || `${listing.title} — ${listing.currency || "CAD"} ${listing.price?.toLocaleString()}`} />
         <meta property="og:description"  content={ogData?.description || `📍 ${listing.city} · ${listing.description?.slice(0,120)}`} />
         <meta property="og:image"        content={ogData?.image || listing.images?.[0] || "https://planetmallshop.com/logo.jpg"} />
-        <meta property="og:image:width"  content="1200" />
-        <meta property="og:image:height" content="630" />
         <meta property="og:url"          content={ogData?.url || `https://planetmallshop.com/classifieds/${listing.id}`} />
-
-        {/* Twitter / X */}
         <meta name="twitter:card"        content="summary_large_image" />
         <meta name="twitter:title"       content={ogData?.title || listing.title} />
         <meta name="twitter:description" content={ogData?.description || `📍 ${listing.city}`} />
         <meta name="twitter:image"       content={ogData?.image || listing.images?.[0] || "https://planetmallshop.com/logo.jpg"} />
       </Head>
       <Layout>
-        {/* Sticky bar — shows when scrolled down */}
         {scrolled && (
           <div className="fixed top-16 left-0 right-0 z-40 px-4 py-3 flex items-center gap-4 shadow-lg"
             style={{background:"#fff",borderBottom:"1px solid #E8E2D9"}}>
@@ -227,41 +222,33 @@ export default function ClassifiedDetailPage({ ogData }: { ogData?: any }) {
                   : `${listing.currency || "CAD"} ${listing.price?.toLocaleString()}${listing.priceType === "negotiable" ? " (OBO)" : ""}`}
               </p>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {!isOwner && listing.status !== "sold" && (
-                <button onClick={handleMessage} disabled={messaging}
-                  className="px-4 py-2 rounded-xl text-white font-dm-sans font-bold text-sm disabled:opacity-50"
-                  style={{background:"#C4531A"}}>
-                  💬 Message
-                </button>
-              )}
-            </div>
+            {!isOwner && listing.status !== "sold" && (
+              <button onClick={handleMessage} disabled={messaging}
+                className="px-4 py-2 rounded-xl text-white font-dm-sans font-bold text-sm disabled:opacity-50"
+                style={{background:"#C4531A"}}>
+                💬 Message
+              </button>
+            )}
           </div>
         )}
+
         <div className="min-h-screen pb-20 px-4" style={{background:"#F6F1E9"}}>
           <div className="max-w-5xl mx-auto pt-6">
 
-            {/* Breadcrumb */}
             <div className="flex items-center gap-2 text-xs font-dm-sans mb-6" style={{color:"#8A8480"}}>
               <Link href="/classifieds" className="hover:underline">Classifieds</Link>
-              <span>›</span>
-              <span>{listing.category}</span>
-              <span>›</span>
-              <span className="truncate max-w-xs">{listing.title}</span>
+              <span>›</span><span>{listing.category}</span>
+              <span>›</span><span className="truncate max-w-xs">{listing.title}</span>
             </div>
 
             <div className="grid lg:grid-cols-3 gap-6">
-              {/* Left — images + details */}
               <div className="lg:col-span-2 space-y-5">
 
-                {/* Images */}
                 <div className="rounded-2xl overflow-hidden" style={{background:"#fff",border:"1px solid #E8E2D9"}}>
                   <div className="h-72 sm:h-96 overflow-hidden" style={{background:"#F6F1E9"}}>
-                    {listing.images?.[activeImg] ? (
-                      <img src={listing.images[activeImg]} alt={listing.title} className="w-full h-full object-contain" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-6xl">📋</div>
-                    )}
+                    {listing.images?.[activeImg]
+                      ? <img src={listing.images[activeImg]} alt={listing.title} className="w-full h-full object-contain" />
+                      : <div className="w-full h-full flex items-center justify-center text-6xl">📋</div>}
                   </div>
                   {listing.images?.length > 1 && (
                     <div className="flex gap-2 p-4 overflow-x-auto">
@@ -276,7 +263,6 @@ export default function ClassifiedDetailPage({ ogData }: { ogData?: any }) {
                   )}
                 </div>
 
-                {/* Details */}
                 <div className="p-6 rounded-2xl" style={{background:"#fff",border:"1px solid #E8E2D9"}}>
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1 min-w-0">
@@ -290,11 +276,10 @@ export default function ClassifiedDetailPage({ ogData }: { ogData?: any }) {
                       </p>
                     </div>
                     <div className="flex items-center gap-2 ml-4">
-                      {/* Heart / Save button */}
                       {!isOwner && (
                         <button onClick={handleSaveListing} disabled={saving}
                           className="w-10 h-10 rounded-full flex items-center justify-center transition-all"
-                          style={{background: isSaved ? "rgba(196,83,26,0.1)" : "#F6F1E9",border:"1px solid #E8E2D9"}}>
+                          style={{background: isSaved?"rgba(196,83,26,0.1)":"#F6F1E9",border:"1px solid #E8E2D9"}}>
                           <span className="text-lg">{isSaved ? "❤️" : "🤍"}</span>
                         </button>
                       )}
@@ -305,19 +290,12 @@ export default function ClassifiedDetailPage({ ogData }: { ogData?: any }) {
                   </div>
 
                   <div className="flex gap-3 flex-wrap mb-5">
-                    <span className="px-3 py-1 rounded-full text-xs font-dm-sans font-medium"
-                      style={{background:"#F6F1E9",color:"#8A8480"}}>{listing.category}</span>
+                    <span className="px-3 py-1 rounded-full text-xs font-dm-sans font-medium" style={{background:"#F6F1E9",color:"#8A8480"}}>{listing.category}</span>
                     {listing.condition !== "na" && (
-                      <span className="px-3 py-1 rounded-full text-xs font-dm-sans font-medium"
-                        style={{background:"#F6F1E9",color:"#8A8480"}}>
-                        {CONDITION_LABELS[listing.condition]}
-                      </span>
+                      <span className="px-3 py-1 rounded-full text-xs font-dm-sans font-medium" style={{background:"#F6F1E9",color:"#8A8480"}}>{CONDITION_LABELS[listing.condition]}</span>
                     )}
                     {listing.useEscrow && (
-                      <span className="px-3 py-1 rounded-full text-xs font-dm-sans font-semibold"
-                        style={{background:"rgba(42,107,69,0.1)",color:"#2A6B45"}}>
-                        🔐 Escrow available
-                      </span>
+                      <span className="px-3 py-1 rounded-full text-xs font-dm-sans font-semibold" style={{background:"rgba(42,107,69,0.1)",color:"#2A6B45"}}>🔐 Escrow available</span>
                     )}
                   </div>
 
@@ -328,30 +306,20 @@ export default function ClassifiedDetailPage({ ogData }: { ogData?: any }) {
                         : listing.description?.slice(0, 200) + "..."}
                     </p>
                     {(listing.description?.length || 0) > 200 && (
-                      <button onClick={() => setShowMore(v => !v)}
-                        className="mt-2 text-sm font-dm-sans font-semibold"
-                        style={{color:"#C4531A"}}>
+                      <button onClick={() => setShowMore(v => !v)} className="mt-2 text-sm font-dm-sans font-semibold" style={{color:"#C4531A"}}>
                         {showMore ? "Show less ↑" : "Show more ↓"}
                       </button>
                     )}
                   </div>
 
                   <div className="flex items-center gap-4 pt-4" style={{borderTop:"1px solid #E8E2D9"}}>
-                    <ShareButton
-                      url={typeof window !== "undefined" ? window.location.href : ""}
-                      title={listing.title}
-                      text={`Check out this listing on Planet Mall: ${listing.title}`}
-                      variant="button"
-                    />
+                    <ShareButton url={typeof window !== "undefined" ? window.location.href : ""} title={listing.title} text={`Check out this listing on Planet Mall: ${listing.title}`} variant="button" />
                     <ReportButton type="product" targetId={listing.id!} targetName={listing.title} />
                   </div>
                 </div>
               </div>
 
-              {/* Right — price + contact */}
               <div className="space-y-4">
-
-                {/* Price card */}
                 <div className="p-6 rounded-2xl" style={{background:"#fff",border:"1px solid #E8E2D9"}}>
                   <p className="font-syne font-bold text-3xl mb-1" style={{color:"#C4531A"}}>
                     {listing.priceType === "free" ? "FREE"
@@ -373,15 +341,14 @@ export default function ClassifiedDetailPage({ ogData }: { ogData?: any }) {
                   )}
 
                   {!isOwner && listing.status !== "sold" && (
-                    <ContactSellerCard phone={listing.phone} whatsapp={listing.whatsapp} />
+                    <ContactSellerCard phone={(listing as any).phone} whatsapp={(listing as any).whatsapp} />
                   )}
 
                   {isOwner && (
                     <div className="space-y-3">
-                      <button
-                        onClick={() => router.push(`/classifieds/post?edit=${listing.id}`)}
+                      <button onClick={() => router.push(`/classifieds/post?edit=${listing.id}`)}
                         className="w-full py-3 rounded-xl font-dm-sans font-bold text-sm text-white flex items-center justify-center gap-2"
-                        style={{background:"#1A1714",border:"1px solid rgba(255,255,255,0.1)"}}>
+                        style={{background:"#1A1714"}}>
                         ✏️ Edit listing
                       </button>
                       <button onClick={()=>markAsSold(listing.id!).then(()=>toast.success("Marked as sold!"))}
@@ -393,24 +360,18 @@ export default function ClassifiedDetailPage({ ogData }: { ogData?: any }) {
                         <button onClick={handleBoost} disabled={boosting}
                           className="w-full py-3 rounded-xl font-dm-sans font-bold text-sm text-white flex items-center justify-center gap-2"
                           style={{background:"linear-gradient(135deg,#D4A84B,#C4531A)"}}>
-                          {boosting
-                            ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Loading...</>
-                            : "⭐ Boost for CA$0.99"}
+                          {boosting ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Loading...</> : "⭐ Boost for CA$0.99"}
                         </button>
                       )}
                     </div>
                   )}
                 </div>
 
-                {/* Seller info */}
                 <div className="p-5 rounded-2xl" style={{background:"#fff",border:"1px solid #E8E2D9"}}>
                   <p className="text-xs font-dm-sans font-semibold uppercase tracking-wide mb-3" style={{color:"#8A8480"}}>Seller</p>
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center font-bold"
-                      style={{background:"rgba(196,83,26,0.15)",color:"#C4531A"}}>
-                      {listing.sellerPhoto
-                        ? <img src={listing.sellerPhoto} alt="" className="w-full h-full object-cover" />
-                        : listing.sellerName?.[0]?.toUpperCase()}
+                    <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center font-bold" style={{background:"rgba(196,83,26,0.15)",color:"#C4531A"}}>
+                      {listing.sellerPhoto ? <img src={listing.sellerPhoto} alt="" className="w-full h-full object-cover" /> : listing.sellerName?.[0]?.toUpperCase()}
                     </div>
                     <div>
                       <p className="font-dm-sans font-semibold text-sm" style={{color:"#1A1714"}}>{listing.sellerName}</p>
@@ -418,22 +379,16 @@ export default function ClassifiedDetailPage({ ogData }: { ogData?: any }) {
                     </div>
                   </div>
 
-                  {/* Star rating summary */}
                   {ratingSum && ratingSum.count > 0 ? (
                     <div className="flex items-center gap-2 mb-3">
-                      <div className="flex">
-                        {[1,2,3,4,5].map(s => (
-                          <span key={s} className="text-sm">{s <= Math.round(ratingSum.average) ? "⭐" : "☆"}</span>
-                        ))}
-                      </div>
+                      <div className="flex">{[1,2,3,4,5].map(s=><span key={s} className="text-sm">{s<=Math.round(ratingSum.average)?"⭐":"☆"}</span>)}</div>
                       <span className="text-xs font-dm-sans font-semibold" style={{color:"#1A1714"}}>{ratingSum.average}</span>
-                      <span className="text-xs font-dm-sans" style={{color:"#8A8480"}}>({ratingSum.count} review{ratingSum.count !== 1 ? "s" : ""})</span>
+                      <span className="text-xs font-dm-sans" style={{color:"#8A8480"}}>({ratingSum.count} review{ratingSum.count!==1?"s":""})</span>
                     </div>
                   ) : (
                     <p className="text-xs font-dm-sans mb-3" style={{color:"#8A8480"}}>No reviews yet</p>
                   )}
 
-                  {/* Rate seller button */}
                   {!isOwner && user && !alreadyRated && (
                     <button onClick={() => setShowRatingModal(true)}
                       className="w-full py-2 rounded-xl text-xs font-dm-sans font-semibold border transition-all"
@@ -441,39 +396,23 @@ export default function ClassifiedDetailPage({ ogData }: { ogData?: any }) {
                       ⭐ Rate this seller
                     </button>
                   )}
-                  {alreadyRated && (
-                    <p className="text-xs font-dm-sans text-center" style={{color:"#2A6B45"}}>✓ You rated this seller</p>
-                  )}
+                  {alreadyRated && <p className="text-xs font-dm-sans text-center" style={{color:"#2A6B45"}}>✓ You rated this seller</p>}
                 </div>
 
-                {/* Escrow info */}
-                {listing.useEscrow && (
-                  <BuyerProtectionBadge />
-                )}
+                {listing.useEscrow && <BuyerProtectionBadge />}
 
-                {/* Safety tips */}
                 <div className="p-4 rounded-2xl" style={{background:"#FFF8F0",border:"1px solid #F0E0C8"}}>
                   <p className="font-dm-sans font-semibold text-xs mb-2" style={{color:"#C4531A"}}>⚠️ Safety tips</p>
                   <ul className="space-y-1">
-                    {[
-                      "Meet in a public place",
-                      "Never send payment before seeing the item",
-                      "Use Planet Mall escrow for protection",
-                      "Trust your instincts",
-                    ].map(tip=>(
-                      <li key={tip} className="text-xs font-dm-sans flex gap-1.5" style={{color:"#8A8480"}}>
-                        <span>•</span>{tip}
-                      </li>
+                    {["Meet in a public place","Never send payment before seeing the item","Use Planet Mall escrow for protection","Trust your instincts"].map(tip=>(
+                      <li key={tip} className="text-xs font-dm-sans flex gap-1.5" style={{color:"#8A8480"}}><span>•</span>{tip}</li>
                     ))}
                   </ul>
-                  <Link href="/trust" className="text-xs font-dm-sans font-semibold mt-2 inline-block" style={{color:"#C4531A"}}>
-                    Trust & Safety →
-                  </Link>
+                  <Link href="/trust" className="text-xs font-dm-sans font-semibold mt-2 inline-block" style={{color:"#C4531A"}}>Trust & Safety →</Link>
                 </div>
               </div>
             </div>
 
-            {/* Similar listings */}
             {similar.length > 0 && (
               <div className="mt-10">
                 <h2 className="font-syne font-bold text-xl mb-5" style={{color:"#1A1714"}}>Similar listings</h2>
@@ -490,9 +429,7 @@ export default function ClassifiedDetailPage({ ogData }: { ogData?: any }) {
                       <div className="p-3">
                         <p className="font-dm-sans font-semibold text-xs mb-1 line-clamp-2" style={{color:"#1A1714"}}>{item.title}</p>
                         <p className="font-syne font-bold text-sm" style={{color:"#C4531A"}}>
-                          {item.priceType === "free" ? "FREE"
-                            : item.priceType === "contact" ? "Contact"
-                            : `${item.currency || "CAD"} ${item.price?.toLocaleString()}`}
+                          {item.priceType==="free"?"FREE":item.priceType==="contact"?"Contact":`${item.currency||"CAD"} ${item.price?.toLocaleString()}`}
                         </p>
                         <p className="text-[10px] font-dm-sans mt-1 truncate" style={{color:"#8A8480"}}>📍 {item.city}</p>
                       </div>
@@ -501,44 +438,37 @@ export default function ClassifiedDetailPage({ ogData }: { ogData?: any }) {
                 </div>
               </div>
             )}
-
           </div>
         </div>
       </Layout>
 
-        {/* Rating modal */}
-        {showRatingModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
-            style={{background:"rgba(0,0,0,0.5)"}}>
-            <div className="w-full max-w-sm rounded-2xl p-6" style={{background:"#fff"}}>
-              <h3 className="font-syne font-bold text-lg mb-1" style={{color:"#1A1714"}}>Rate {listing.sellerName}</h3>
-              <p className="text-xs font-dm-sans mb-5" style={{color:"#8A8480"}}>How was your experience with this seller?</p>
-              <div className="flex gap-2 justify-center mb-5">
-                {[1,2,3,4,5].map(s => (
-                  <button key={s} onClick={() => setMyRating(s)} className="text-3xl transition-transform hover:scale-110">
-                    {s <= myRating ? "⭐" : "☆"}
-                  </button>
-                ))}
-              </div>
-              <textarea value={myComment} onChange={e => setMyComment(e.target.value)}
-                placeholder="Share your experience (optional)..." rows={3}
-                className="w-full px-4 py-3 rounded-xl border text-sm font-dm-sans resize-none focus:outline-none mb-4"
-                style={{borderColor:"#E8E2D9",color:"#1A1714"}}
-                onFocus={e => e.target.style.borderColor="#C4531A"}
-                onBlur={e => e.target.style.borderColor="#E8E2D9"} />
-              <div className="flex gap-3">
-                <button onClick={() => setShowRatingModal(false)}
-                  className="flex-1 py-3 rounded-xl text-sm font-dm-sans border"
-                  style={{borderColor:"#E8E2D9",color:"#8A8480"}}>Cancel</button>
-                <button onClick={handleSubmitRating} disabled={myRating === 0 || submittingRating}
-                  className="flex-1 py-3 rounded-xl text-sm font-dm-sans font-bold text-white disabled:opacity-50"
-                  style={{background:"#C4531A"}}>
-                  {submittingRating ? "Submitting..." : "Submit rating"}
+      {showRatingModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{background:"rgba(0,0,0,0.5)"}}>
+          <div className="w-full max-w-sm rounded-2xl p-6" style={{background:"#fff"}}>
+            <h3 className="font-syne font-bold text-lg mb-1" style={{color:"#1A1714"}}>Rate {listing.sellerName}</h3>
+            <p className="text-xs font-dm-sans mb-5" style={{color:"#8A8480"}}>How was your experience with this seller?</p>
+            <div className="flex gap-2 justify-center mb-5">
+              {[1,2,3,4,5].map(s=>(
+                <button key={s} onClick={()=>setMyRating(s)} className="text-3xl transition-transform hover:scale-110">
+                  {s<=myRating?"⭐":"☆"}
                 </button>
-              </div>
+              ))}
+            </div>
+            <textarea value={myComment} onChange={e=>setMyComment(e.target.value)}
+              placeholder="Share your experience (optional)..." rows={3}
+              className="w-full px-4 py-3 rounded-xl border text-sm font-dm-sans resize-none focus:outline-none mb-4"
+              style={{borderColor:"#E8E2D9",color:"#1A1714"}} />
+            <div className="flex gap-3">
+              <button onClick={()=>setShowRatingModal(false)} className="flex-1 py-3 rounded-xl text-sm font-dm-sans border" style={{borderColor:"#E8E2D9",color:"#8A8480"}}>Cancel</button>
+              <button onClick={handleSubmitRating} disabled={myRating===0||submittingRating}
+                className="flex-1 py-3 rounded-xl text-sm font-dm-sans font-bold text-white disabled:opacity-50"
+                style={{background:"#C4531A"}}>
+                {submittingRating?"Submitting...":"Submit rating"}
+              </button>
             </div>
           </div>
-        )}
+        </div>
+      )}
     </>
   );
 }
@@ -548,17 +478,13 @@ export async function getServerSideProps({ params }: { params: { id: string } })
     const { adminDb } = await import("@/lib/firebase-admin");
     const snap = await adminDb.doc(`classifieds/${params.id}`).get();
     if (!snap.exists) return { props: {} };
-
     const data = snap.data()!;
-    const priceLabel = data.priceType === "free" ? "FREE"
-      : data.priceType === "contact" ? "Contact for price"
-      : `${data.currency || "CAD"} ${Number(data.price || 0).toLocaleString()}`;
-
+    const priceLabel = data.priceType==="free"?"FREE":data.priceType==="contact"?"Contact for price":`${data.currency||"CAD"} ${Number(data.price||0).toLocaleString()}`;
     return {
       props: {
         ogData: {
           title:       `${data.title} — ${priceLabel}`,
-          description: `📍 ${data.city}, ${data.province} · ${(data.description || "").slice(0, 140)}`,
+          description: `📍 ${data.city}, ${data.province} · ${(data.description||"").slice(0,140)}`,
           image:       data.images?.[0] || "https://planetmallshop.com/logo.jpg",
           url:         `https://planetmallshop.com/classifieds/${params.id}`,
         },
