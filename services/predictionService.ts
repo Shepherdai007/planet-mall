@@ -9,6 +9,8 @@ import {
   query, where, orderBy, limit as fbLimit, serverTimestamp, increment,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { createNotification } from "@/services/notificationService";
+import { sendPush } from "@/lib/sendPush";
 
 export const SPORTS = [
   "Football", "Basketball", "Tennis", "Cricket",
@@ -177,11 +179,45 @@ export async function createPrediction(data: Omit<Prediction, "id" | "createdAt"
     views:     0,
     createdAt: serverTimestamp(),
   });
+
   // Increment tipster total picks
   const tipsterSnap = await getDocs(query(collection(db, "tipsters"), where("userId", "==", data.tipsterId)));
   if (!tipsterSnap.empty) {
     await updateDoc(tipsterSnap.docs[0].ref, { totalPicks: increment(1) });
   }
+
+  // Notify all followers
+  try {
+    const followsSnap = await getDocs(query(
+      collection(db, "tipsterFollows"),
+      where("tipsterId", "==", data.tipsterId)
+    ));
+
+    const notifPromises = followsSnap.docs.map(async d => {
+      const followerId = d.data().userId;
+      const notifLink  = `/predictions/tipster/${data.tipsterId}`;
+      const title      = `🏆 ${data.tipsterName} posted a new tip!`;
+      const body       = `${data.homeTeam} vs ${data.awayTeam} — ${data.tip} @ ${data.odds}`;
+
+      // In-app notification
+      await createNotification({
+        userId: followerId,
+        type:   "system",
+        title,
+        body,
+        link:   notifLink,
+      });
+
+      // Push notification
+      sendPush({ userId: followerId, title, body, url: `https://planetmallshop.com${notifLink}` }).catch(() => {});
+    });
+
+    await Promise.all(notifPromises);
+  } catch (e) {
+    // Never block prediction creation if notifications fail
+    console.error("Failed to notify followers:", e);
+  }
+
   return ref.id;
 }
 
