@@ -107,9 +107,13 @@ export default function RoomsPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
                         <h3 className="font-syne font-bold text-paper truncate">{room.name}</h3>
-                        {room.price === 0 && (
+                        {room.price === 0 && room.memberCount < 2 && (
                           <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
                             style={{background:"rgba(42,107,69,0.2)",color:"#2A6B45"}}>FREE</span>
+                        )}
+                        {room.price === 0 && room.memberCount >= 2 && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
+                            style={{background:"rgba(196,83,26,0.2)",color:"#C4531A"}}>FULL</span>
                         )}
                       </div>
                       <p className="text-xs font-dm-sans truncate mb-1" style={{color:"#8A8480"}}>{room.description}</p>
@@ -157,8 +161,9 @@ export default function RoomsPage() {
               {/* Steps */}
               <div className="space-y-3 mb-6">
                 {[
-                  { icon:"🏠", title:"Create a Room", desc:"Set a name, description, category and monthly price. Free or paid — you decide." },
-                  { icon:"💳", title:"Members Pay to Join", desc:"People pay your monthly price to enter. Planet Mall takes 10% — the rest is yours." },
+                  { icon:"🏠", title:"Create a Room", desc:"Set a name, description, category and monthly price. Free rooms are limited to 2 members only." },
+                  { icon:"💳", title:"Members Pay to Join", desc:"Set CA$2+/month to allow unlimited members. Planet Mall takes 10% — the rest is yours." },
+                  { icon:"👥", title:"Free Room Limit", desc:"Free rooms (CA$0) allow only 2 members max — owner + 1 person. Upgrade to paid to grow your community." },
                   { icon:"💬", title:"Chat Together", desc:"Real-time group chat inside your room. Everyone who joins can send messages." },
                   { icon:"🎙️", title:"Voice Calls", desc:"Tap to Talk to join a live voice channel. Raise your hand and the owner approves you to speak." },
                   { icon:"🔗", title:"Invite Anyone", desc:"Share your room link on WhatsApp, Telegram or anywhere to grow your community." },

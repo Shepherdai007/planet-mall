@@ -13,6 +13,7 @@ import {
 import { db } from "@/lib/firebase";
 
 export const ROOM_COMMISSION = 0.10; // 10%
+export const FREE_ROOM_MEMBER_LIMIT = 2; // free rooms: owner + 1 person only
 
 export const ROOM_CATEGORIES = [
   "Business & Finance", "Education", "Entertainment",
@@ -122,6 +123,15 @@ export async function isMember(roomId: string, userId: string): Promise<boolean>
 
 // ── Add member after payment ──────────────────────────────────────
 export async function addMember(roomId: string, member: Omit<RoomMember, "joinedAt" | "expiresAt"> & { stripeSessionId: string }): Promise<void> {
+  // Enforce free room limit
+  const roomSnap = await getDoc(doc(db, "rooms", roomId));
+  if (roomSnap.exists()) {
+    const roomData = roomSnap.data() as Room;
+    if (roomData.price === 0 && roomData.memberCount >= FREE_ROOM_MEMBER_LIMIT) {
+      throw new Error("FREE_ROOM_FULL");
+    }
+  }
+
   const expires = new Date();
   expires.setDate(expires.getDate() + 30); // 30-day access
 

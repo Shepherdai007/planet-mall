@@ -122,8 +122,13 @@ export default function RoomPage() {
       });
       setJoined(true);
       toast.success("Joined! Welcome 🎉");
-    } catch { toast.error("Failed to join"); }
-    finally { setPaying(false); }
+    } catch (e: any) {
+      if (e.message === "FREE_ROOM_FULL") {
+        toast.error("This free room is full (max 2 members). The owner must upgrade to CA$2+/month to allow more members.");
+      } else {
+        toast.error("Failed to join");
+      }
+    } finally { setPaying(false); }
   }
 
   async function handlePayAndJoin() {
@@ -428,6 +433,16 @@ export default function RoomPage() {
                     style={{background:"#C4531A",color:"#fff"}}>
                     Sign in to Join
                   </Link>
+                ) : room.price === 0 && room.memberCount >= 2 ? (
+                  <div>
+                    <div className="w-full py-3.5 rounded-xl font-dm-sans font-bold text-sm text-center mb-2"
+                      style={{background:"rgba(255,255,255,0.05)",color:"#8A8480",border:"1px solid rgba(255,255,255,0.08)"}}>
+                      🔒 Room Full
+                    </div>
+                    <p className="text-xs font-dm-sans text-center" style={{color:"#D4A84B"}}>
+                      This free room has reached its 2-member limit. The owner needs to set a paid price to allow more members.
+                    </p>
+                  </div>
                 ) : room.price === 0 ? (
                   <button onClick={handleJoinFree} disabled={paying}
                     className="w-full py-3.5 rounded-xl font-dm-sans font-bold text-sm disabled:opacity-50"
@@ -443,7 +458,7 @@ export default function RoomPage() {
                 )}
 
                 <p className="text-xs font-dm-sans mt-3" style={{color:"#8A8480"}}>
-                  {room.price > 0 ? "Billed monthly. Cancel anytime." : "Free to join — no payment needed."}
+                  {room.price > 0 ? "Billed monthly. Cancel anytime." : room.memberCount >= 2 ? "" : "Free to join — no payment needed."}
                 </p>
               </div>
             </div>
