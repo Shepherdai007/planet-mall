@@ -13,10 +13,19 @@ export default function RoomsPage() {
   const [rooms,    setRooms]    = useState<Room[]>([]);
   const [loading,  setLoading]  = useState(true);
   const [category, setCategory] = useState("All");
+  const [showInfo, setShowInfo] = useState(false);
 
   useEffect(() => {
     getAllRooms().then(r => { setRooms(r); setLoading(false); });
+    // Show welcome popup only if never seen before
+    const seen = localStorage.getItem("rooms_intro_seen");
+    if (!seen) setShowInfo(true);
   }, []);
+
+  function dismissInfo() {
+    localStorage.setItem("rooms_intro_seen", "1");
+    setShowInfo(false);
+  }
 
   const filtered = category === "All" ? rooms : rooms.filter(r => r.category === category);
 
@@ -127,6 +136,53 @@ export default function RoomsPage() {
             )}
           </div>
         </div>
+
+        {/* ── How It Works — First Visit Popup ─────────────── */}
+        {showInfo && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-4 pb-4 sm:pb-0"
+            style={{background:"rgba(0,0,0,0.8)"}}>
+            <div className="w-full max-w-sm rounded-2xl p-6"
+              style={{background:"#141210",border:"1px solid rgba(255,255,255,0.1)"}}>
+
+              {/* Title */}
+              <div className="text-center mb-5">
+                <p className="text-3xl mb-2">🏠</p>
+                <h2 className="font-syne font-bold text-xl text-paper mb-1">Welcome to Planet Rooms</h2>
+                <p className="text-xs font-dm-sans" style={{color:"#8A8480"}}>
+                  Paid communities with live chat & voice calls
+                </p>
+              </div>
+
+              {/* Steps */}
+              <div className="space-y-3 mb-6">
+                {[
+                  { icon:"🏠", title:"Create a Room", desc:"Set a name, description, category and monthly price. Free or paid — you decide." },
+                  { icon:"💳", title:"Members Pay to Join", desc:"People pay your monthly price to enter. Planet Mall takes 10% — the rest is yours." },
+                  { icon:"💬", title:"Chat Together", desc:"Real-time group chat inside your room. Everyone who joins can send messages." },
+                  { icon:"🎙️", title:"Voice Calls", desc:"Tap to Talk to join a live voice channel. Raise your hand and the owner approves you to speak." },
+                  { icon:"🔗", title:"Invite Anyone", desc:"Share your room link on WhatsApp, Telegram or anywhere to grow your community." },
+                ].map((s, i) => (
+                  <div key={i} className="flex gap-3 items-start">
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-base"
+                      style={{background:"rgba(196,83,26,0.12)"}}>
+                      {s.icon}
+                    </div>
+                    <div>
+                      <p className="text-xs font-dm-sans font-bold text-paper">{s.title}</p>
+                      <p className="text-[11px] font-dm-sans leading-relaxed" style={{color:"#8A8480"}}>{s.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button onClick={dismissInfo}
+                className="w-full py-3 rounded-xl font-dm-sans font-bold text-sm"
+                style={{background:"#C4531A",color:"#fff"}}>
+                Got it — Let's Go! 🚀
+              </button>
+            </div>
+          </div>
+        )}
       </Layout>
     </>
   );
