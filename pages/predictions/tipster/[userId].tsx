@@ -12,7 +12,7 @@ import { useAuth }     from "@/context/AuthContext";
 import {
   getTipsterProfile, getPredictions, getVIPPicks,
   followTipster, unfollowTipster, isFollowingTipster,
-  updatePredictionResult,
+  updatePredictionResult, likePrediction,
 } from "@/services/predictionService";
 import { getTeamDisplay, getLeagueFlag } from "@/lib/countryFlags";
 import { timeAgo }     from "@/lib/helpers";
@@ -38,6 +38,7 @@ export default function TipsterProfilePage() {
   const [following,   setFollowing]   = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [tab,         setTab]         = useState<"tips"|"vip">("tips");
+  const [likedIds,    setLikedIds]    = useState<Set<string>>(new Set());
 
   const isOwner = user?.uid === userId;
 
@@ -93,6 +94,14 @@ export default function TipsterProfilePage() {
       navigator.clipboard.writeText(url);
       toast.success("Link copied!");
     }
+  }
+
+  async function handleLike(predId: string) {
+    if (!isLoggedIn) { toast.error("Sign in to like"); return; }
+    if (likedIds.has(predId)) return;
+    setLikedIds(prev => new Set(prev).add(predId));
+    setPredictions(prev => prev.map(p => p.id === predId ? { ...p, likes: p.likes + 1 } : p));
+    await likePrediction(predId);
   }
 
   const winRate = tipster && tipster.totalPicks > 0
