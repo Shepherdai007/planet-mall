@@ -42,7 +42,7 @@ export default function RoomPage() {
   const [paying,      setPaying]      = useState(false);
   const [showInvite,  setShowInvite]  = useState(false);
   const [showEdit,    setShowEdit]    = useState(false);
-  const [editForm,    setEditForm]    = useState({ name:"", description:"" });
+  const [editForm,    setEditForm]    = useState({ name:"", description:"", price:"" });
   const [editPhoto,   setEditPhoto]   = useState<File | null>(null);
   const [editPreview, setEditPreview] = useState("");
   const [editSaving,  setEditSaving]  = useState(false);
@@ -192,12 +192,23 @@ export default function RoomPage() {
         await uploadBytes(sRef, editPhoto);
         photoURL = await getDownloadURL(sRef);
       }
+      const newPrice = parseFloat(editForm.price);
+      const commission  = isNaN(newPrice) ? room.commission  : Math.round(newPrice * 0.10 * 100) / 100;
+      const ownerPayout = isNaN(newPrice) ? room.ownerPayout : Math.round((newPrice - commission) * 100) / 100;
+
       await updateDoc(doc(db, "rooms", room.id!), {
-        name:        editForm.name        || room.name,
-        description: editForm.description || room.description,
-        photo:       photoURL,
+        name:         editForm.name        || room.name,
+        description:  editForm.description || room.description,
+        photo:        photoURL,
+        ...(!isNaN(newPrice) && { price: newPrice, commission, ownerPayout }),
       });
-      setRoom(r => r ? { ...r, name: editForm.name || r.name, description: editForm.description || r.description, photo: photoURL } : r);
+      setRoom(r => r ? {
+        ...r,
+        name:         editForm.name        || r.name,
+        description:  editForm.description || r.description,
+        photo:        photoURL,
+        ...(!isNaN(newPrice) && { price: newPrice, commission, ownerPayout }),
+      } : r);
       toast.success("Room updated! ✅");
       setShowEdit(false);
       setEditPhoto(null);
@@ -310,7 +321,7 @@ export default function RoomPage() {
             </button>
             {/* Edit button — owner only */}
             {isOwner && (
-              <button onClick={() => { setEditForm({ name: room.name, description: room.description }); setShowEdit(true); }}
+              <button onClick={() => { setEditForm({ name: room.name, description: room.description, price: room.price.toString() }); setShowEdit(true); }}
                 className="px-3 py-1.5 rounded-xl text-xs font-bold flex-shrink-0"
                 style={{background:"rgba(196,83,26,0.1)",color:"#C4531A"}}>
                 ✏️ Edit
@@ -632,6 +643,24 @@ export default function RoomPage() {
                     onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
                     className="w-full px-4 py-2.5 rounded-xl text-sm font-dm-sans text-paper outline-none resize-none"
                     style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)"}} />
+                </div>
+
+                {/* Price */}
+                <div className="mb-5">
+                  <label className="text-xs font-dm-sans font-semibold mb-1.5 block" style={{color:"#8A8480"}}>MONTHLY PRICE (CAD) — set 0 for free (max 2 members)</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-dm-sans" style={{color:"#8A8480"}}>CA$</span>
+                    <input value={editForm.price}
+                      onChange={e => setEditForm(f => ({ ...f, price: e.target.value }))}
+                      type="number" min="0" step="0.01"
+                      className="w-full pl-12 pr-4 py-2.5 rounded-xl text-sm font-dm-sans text-paper outline-none"
+                      style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)"}} />
+                  </div>
+                  {editForm.price && parseFloat(editForm.price) > 0 && (
+                    <p className="text-xs font-dm-sans mt-1" style={{color:"#8A8480"}}>
+                      You receive CA${(parseFloat(editForm.price) * 0.9).toFixed(2)}/member/month after 10% commission
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex gap-2">
