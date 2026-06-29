@@ -3,10 +3,11 @@
 
 import Head         from "next/head";
 import { useRouter } from "next/router";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Layout        from "@/components/Layout";
 import { useAuth }   from "@/context/AuthContext";
 import { createRoom, ROOM_CATEGORIES } from "@/services/roomService";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import toast         from "react-hot-toast";
 
 export default function CreateRoomPage() {
@@ -21,29 +22,52 @@ export default function CreateRoomPage() {
     isPrivate:   false,
     photo:       "",
   });
-  const [saving, setSaving] = useState(false);
+  const [saving,      setSaving]      = useState(false);
+  const [photoFile,   setPhotoFile]   = useState<File | null>(null);
+  const [photoPreview,setPhotoPreview]= useState<string>("");
+  const [uploading,   setUploading]   = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   function set(k: string, v: any) { setForm(f => ({ ...f, [k]: v })); }
 
+  function handlePhotoPick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+  }
+
   async function handleSubmit() {
     if (!isLoggedIn || !user) { toast.error("Sign in first"); return; }
-    if (!form.name.trim())    { toast.error("Room name required"); return; }
+    if (!form.name.trim())        { toast.error("Room name required"); return; }
     if (!form.description.trim()) { toast.error("Description required"); return; }
 
     setSaving(true);
     try {
+      let photoURL = form.photo;
+
+      // Upload photo if one was selected
+      if (photoFile) {
+        setUploading(true);
+        const storage  = getStorage();
+        const photoRef = ref(storage, `rooms/${user.uid}/${Date.now()}_${photoFile.name}`);
+        await uploadBytes(photoRef, photoFile);
+        photoURL = await getDownloadURL(photoRef);
+        setUploading(false);
+      }
+
       const roomId = await createRoom({
-        ownerId:    user.uid,
-        ownerName:  user.displayName || "Anonymous",
-        ownerPhoto: user.photoURL    || "",
-        name:       form.name.trim(),
+        ownerId:     user.uid,
+        ownerName:   user.displayName || "Anonymous",
+        ownerPhoto:  user.photoURL    || "",
+        name:        form.name.trim(),
         description: form.description.trim(),
-        category:   form.category,
-        photo:      form.photo,
-        price:      parseFloat(form.price) || 0,
-        currency:   "CAD",
-        isPrivate:  form.isPrivate,
-        status:     "active",
+        category:    form.category,
+        photo:       photoURL,
+        price:       parseFloat(form.price) || 0,
+        currency:    "CAD",
+        isPrivate:   form.isPrivate,
+        status:      "active",
       });
       toast.success("Room created! 🎉");
       router.push(`/rooms/${roomId}`);
@@ -51,6 +75,7 @@ export default function CreateRoomPage() {
       toast.error("Failed to create room");
     } finally {
       setSaving(false);
+      setUploading(false);
     }
   }
 
@@ -119,20 +144,42 @@ export default function CreateRoomPage() {
                 )}
               </div>
 
-              {/* Photo URL */}
+              {/* Room Photo Upload */}
               <div>
-                <label className="text-xs font-dm-sans font-semibold mb-1.5 block" style={{color:"#8A8480"}}>ROOM PHOTO URL (optional)</label>
-                <input value={form.photo} onChange={e => set("photo", e.target.value)}
-                  placeholder="https://..."
-                  className="w-full px-4 py-3 rounded-xl text-sm font-dm-sans text-paper outline-none"
-                  style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)"}} />
+                <label className="text-xs font-dm-sans font-semibold mb-1.5 block" style={{color:"#8A8480"}}>ROOM PHOTO (optional)</label>
+                <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoPick} className="hidden" />
+                <div className="flex items-center gap-4">
+                  {/* Preview */}
+                  <div
+                    className="w-16 h-16 rounded-xl overflow-hidden flex items-center justify-center flex-shrink-0 cursor-pointer"
+                    style={{background:"rgba(196,83,26,0.1)",border:"2px dashed rgba(196,83,26,0.3)"}}
+                    onClick={() => fileInputRef.current?.click()}>
+                    {photoPreview
+                      ? <img src={photoPreview} alt="" className="w-full h-full object-cover" />
+                      : <span className="text-2xl">📷</span>}
+                  </div>
+                  <div className="flex-1">
+                    <button type="button" onClick={() => fileInputRef.current?.click()}
+                      className="w-full py-2.5 rounded-xl text-sm font-dm-sans font-semibold"
+                      style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",color:"#8A8480"}}>
+                      {photoPreview ? "Change Photo" : "Upload Photo"}
+                    </button>
+                    {photoPreview && (
+                      <button type="button" onClick={() => { setPhotoFile(null); setPhotoPreview(""); }}
+                        className="w-full mt-1.5 text-xs font-dm-sans text-center"
+                        style={{color:"#C4531A"}}>
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {/* Submit */}
-              <button onClick={handleSubmit} disabled={saving}
+              <button onClick={handleSubmit} disabled={saving || uploading}
                 className="w-full py-3.5 rounded-xl font-dm-sans font-bold text-sm transition-all mt-2 disabled:opacity-50"
                 style={{background:"#C4531A",color:"#fff"}}>
-                {saving ? "Creating..." : "Create Room 🏠"}
+                {uploading ? "Uploading photo..." : saving ? "Creating..." : "Create Room 🏠"}
               </button>
             </div>
           </div>
