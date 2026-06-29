@@ -14,6 +14,8 @@ import {
   listenRoomMessages, listenRoomMembers,
   type Room, type RoomMessage, type RoomMember,
 } from "@/services/roomService";
+import { db } from "@/lib/firebase";
+import { doc, updateDoc, onSnapshot } from "firebase/firestore";
 import toast           from "react-hot-toast";
 
 // Agora
@@ -39,9 +41,12 @@ export default function RoomPage() {
   const [paying,    setPaying]    = useState(false);
 
   // Voice call state
-  const [inCall,       setInCall]       = useState(false);
-  const [muted,        setMuted]        = useState(false);
-  const [callMembers,  setCallMembers]  = useState<string[]>([]);
+  const [inCall,         setInCall]         = useState(false);
+  const [muted,          setMuted]          = useState(true); // muted by default
+  const [callMembers,    setCallMembers]    = useState<string[]>([]);
+  const [raisedHands,    setRaisedHands]    = useState<string[]>([]); // userIds who raised hand
+  const [allowedToTalk,  setAllowedToTalk]  = useState<string[]>([]); // approved by owner
+  const [handRaised,     setHandRaised]     = useState(false); // current user's hand
   const clientRef    = useRef<any>(null);
   const micTrackRef  = useRef<any>(null);
 
@@ -63,7 +68,16 @@ export default function RoomPage() {
 
     const unsubMsgs    = listenRoomMessages(rid, setMessages);
     const unsubMembers = listenRoomMembers(rid, setMembers);
-    return () => { unsubMsgs(); unsubMembers(); };
+
+    // Listen to raised hands + allowed speakers on the room doc
+    const unsubRoom = onSnapshot(doc(db, "rooms", rid), snap => {
+      if (!snap.exists()) return;
+      const data = snap.data();
+      setRaisedHands(data.raisedHands   || []);
+      setAllowedToTalk(data.allowedToTalk || []);
+    });
+
+    return () => { unsubMsgs(); unsubMembers(); unsubRoom(); };
   }, [roomId, user]);
 
   useEffect(() => {
@@ -127,19 +141,41 @@ export default function RoomPage() {
     finally { setPaying(false); }
   }
 
+  // ── Raise hand ───────────────────────────────────────────────
+  async function handleRaiseHand() {
+    if (!user || !room) return;
+    const newHands = handRaised
+      ? raisedHands.filter(id => id !== user.uid)
+      : [...raisedHands, user.uid];
+    setHandRaised(!handRaised);
+    await updateDoc(doc(db, "rooms", room.id!), { raisedHands: newHands });
+    if (!handRaised) toast("✋ Hand raised! Waiting for owner to allow you to speak...");
+    else toast("Hand lowered");
+  }
+
+  // ── Owner: approve speaker ────────────────────────────────────
+  async function handleApproveSpeaker(userId: string) {
+    if (!room || !isOwner) return;
+    const newAllowed = allowedToTalk.includes(userId)
+      ? allowedToTalk.filter(id => id !== userId)
+      : [...allowedToTalk, userId];
+    const newHands = raisedHands.filter(id => id !== userId);
+    await updateDoc(doc(db, "rooms", room.id!), {
+      allowedToTalk: newAllowed,
+      raisedHands:   newHands,
+    });
+    toast.success(allowedToTalk.includes(userId) ? "Speaker muted" : "Speaker approved ✅");
+  }
+
   // ── Voice call ────────────────────────────────────────────────
   async function startVoiceCall() {
     if (!AgoraRTC || !room) return;
+    const canTalk = isOwner || allowedToTalk.includes(user!.uid);
     try {
-      // Get token from server first
       const tokenRes = await fetch("/api/agora-token", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({
-          channelName: room.agoraChannel,
-          uid:         0,
-          role:        "host",
-        }),
+        body:    JSON.stringify({ channelName: room.agoraChannel, uid: 0, role: "host" }),
       });
       const { token } = await tokenRes.json();
       if (!token) { toast.error("Could not get call token"); return; }
@@ -159,11 +195,14 @@ export default function RoomPage() {
       await client.join(AGORA_APP_ID, room.agoraChannel, token, user!.uid);
       const micTrack = await AgoraRTC.createMicrophoneAudioTrack();
       micTrackRef.current = micTrack;
+      // Start muted unless owner or approved
+      await micTrack.setEnabled(canTalk);
+      setMuted(!canTalk);
       await client.publish([micTrack]);
       setInCall(true);
       setCallMembers([user!.uid]);
-      toast.success("Joined voice call 🎙️");
-    } catch (e) {
+      toast.success(canTalk ? "Joined voice call 🎙️" : "Joined call — mic muted. Raise hand to speak.");
+    } catch {
       toast.error("Could not join call");
     }
   }
@@ -176,8 +215,13 @@ export default function RoomPage() {
     toast("Left call");
   }
 
-  function toggleMute() {
+  async function toggleMute() {
     if (!micTrackRef.current) return;
+    const canTalk = isOwner || allowedToTalk.includes(user!.uid);
+    if (!canTalk && muted) {
+      toast.error("Raise your hand to get permission to speak ✋");
+      return;
+    }
     if (muted) { micTrackRef.current.setEnabled(true); setMuted(false); }
     else        { micTrackRef.current.setEnabled(false); setMuted(true); }
   }
@@ -219,13 +263,17 @@ export default function RoomPage() {
               <p className="font-syne font-bold text-paper text-sm truncate">{room.name}</p>
               <p className="text-[10px] font-dm-sans" style={{color:"#8A8480"}}>👥 {room.memberCount} members · {room.category}</p>
             </div>
-            {/* Voice call button */}
+            {/* Voice call controls */}
             {joined && (
               inCall ? (
                 <div className="flex gap-2">
+                  {/* Tap to Talk / Mute */}
                   <button onClick={toggleMute}
-                    className="px-3 py-1.5 rounded-xl text-xs font-bold"
-                    style={{background: muted ? "rgba(196,83,26,0.2)" : "rgba(42,107,69,0.2)", color: muted ? "#C4531A" : "#2A6B45"}}>
+                    className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
+                    style={{
+                      background: muted ? "rgba(196,83,26,0.2)" : "rgba(42,107,69,0.3)",
+                      color:      muted ? "#C4531A"              : "#2A6B45",
+                    }}>
                     {muted ? "🔇 Muted" : "🎙️ Live"}
                   </button>
                   <button onClick={leaveVoiceCall}
@@ -238,7 +286,7 @@ export default function RoomPage() {
                 <button onClick={startVoiceCall}
                   className="px-3 py-1.5 rounded-xl text-xs font-bold"
                   style={{background:"rgba(255,255,255,0.06)",color:"#8A8480"}}>
-                  🎙️ Voice
+                  🎙️ Tap to Talk
                 </button>
               )
             )}
@@ -249,6 +297,52 @@ export default function RoomPage() {
             <div className="px-4 py-2 text-xs font-dm-sans font-semibold text-center"
               style={{background:"rgba(42,107,69,0.15)",color:"#2A6B45"}}>
               🎙️ Voice call active · {callMembers.length} on call
+            </div>
+          )}
+
+          {/* Raise hand banner for members not yet approved */}
+          {inCall && !isOwner && !allowedToTalk.includes(user?.uid || "") && (
+            <div className="px-4 py-2 flex items-center justify-between"
+              style={{background:"rgba(212,168,75,0.08)",borderBottom:"1px solid rgba(212,168,75,0.15)"}}>
+              <p className="text-xs font-dm-sans" style={{color:"#D4A84B"}}>
+                {handRaised ? "✋ Hand raised — waiting for owner..." : "Raise your hand to speak"}
+              </p>
+              <button onClick={handleRaiseHand}
+                className="px-3 py-1 rounded-lg text-xs font-bold transition-all"
+                style={{
+                  background: handRaised ? "rgba(212,168,75,0.3)" : "rgba(212,168,75,0.15)",
+                  color: "#D4A84B",
+                }}>
+                {handRaised ? "✋ Lower Hand" : "✋ Raise Hand"}
+              </button>
+            </div>
+          )}
+
+          {/* Owner: raised hands approval panel */}
+          {isOwner && raisedHands.length > 0 && (
+            <div className="px-4 py-2 border-b" style={{borderColor:"rgba(255,255,255,0.06)",background:"rgba(196,83,26,0.05)"}}>
+              <p className="text-xs font-dm-sans font-bold mb-2" style={{color:"#C4531A"}}>
+                ✋ {raisedHands.length} member{raisedHands.length > 1 ? "s" : ""} want to speak
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {raisedHands.map(uid => {
+                  const m = members.find(m => m.userId === uid);
+                  if (!m) return null;
+                  const approved = allowedToTalk.includes(uid);
+                  return (
+                    <button key={uid} onClick={() => handleApproveSpeaker(uid)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
+                      style={{
+                        background: approved ? "rgba(42,107,69,0.2)" : "rgba(196,83,26,0.15)",
+                        color:      approved ? "#2A6B45"              : "#C4531A",
+                        border:     `1px solid ${approved ? "rgba(42,107,69,0.3)" : "rgba(196,83,26,0.2)"}`,
+                      }}>
+                      <span>{m.userName}</span>
+                      <span>{approved ? "✅ Approved" : "Allow"}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 
@@ -403,7 +497,15 @@ export default function RoomPage() {
                           {m.role === "owner" ? "👑 Owner" : "Member"}
                         </p>
                       </div>
-                      {callMembers.includes(m.userId) && (
+                      {raisedHands.includes(m.userId) && (
+                        <span className="text-[10px] font-dm-sans font-bold px-2 py-0.5 rounded-full"
+                          style={{background:"rgba(212,168,75,0.2)",color:"#D4A84B"}}>✋ Hand raised</span>
+                      )}
+                      {allowedToTalk.includes(m.userId) && (
+                        <span className="text-[10px] font-dm-sans font-bold px-2 py-0.5 rounded-full"
+                          style={{background:"rgba(42,107,69,0.2)",color:"#2A6B45"}}>🎙️ Can speak</span>
+                      )}
+                      {callMembers.includes(m.userId) && !allowedToTalk.includes(m.userId) && (
                         <span className="text-[10px] font-dm-sans font-bold px-2 py-0.5 rounded-full"
                           style={{background:"rgba(42,107,69,0.2)",color:"#2A6B45"}}>🎙️ On call</span>
                       )}
