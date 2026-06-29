@@ -17,13 +17,14 @@ export default function RoomsPage() {
 
   useEffect(() => {
     getAllRooms().then(r => { setRooms(r); setLoading(false); });
-    // Show welcome popup only if never seen before
+    // Show welcome popup once a week
     const seen = localStorage.getItem("rooms_intro_seen");
-    if (!seen) setShowInfo(true);
+    const now  = Date.now();
+    if (!seen || now - parseInt(seen) > 7 * 24 * 60 * 60 * 1000) setShowInfo(true);
   }, []);
 
   function dismissInfo() {
-    localStorage.setItem("rooms_intro_seen", "1");
+    localStorage.setItem("rooms_intro_seen", Date.now().toString());
     setShowInfo(false);
   }
 
