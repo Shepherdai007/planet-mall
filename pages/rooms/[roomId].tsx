@@ -38,7 +38,8 @@ export default function RoomPage() {
   const [text,      setText]      = useState("");
   const [sending,   setSending]   = useState(false);
   const [tab,       setTab]       = useState<"chat"|"members">("chat");
-  const [paying,    setPaying]    = useState(false);
+  const [paying,      setPaying]      = useState(false);
+  const [showInvite,  setShowInvite]  = useState(false);
 
   // Voice call state
   const [inCall,         setInCall]         = useState(false);
@@ -263,6 +264,12 @@ export default function RoomPage() {
               <p className="font-syne font-bold text-paper text-sm truncate">{room.name}</p>
               <p className="text-[10px] font-dm-sans" style={{color:"#8A8480"}}>👥 {room.memberCount} members · {room.category}</p>
             </div>
+            {/* Share/Invite button */}
+            <button onClick={() => setShowInvite(true)}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold flex-shrink-0"
+              style={{background:"rgba(255,255,255,0.06)",color:"#8A8480"}}>
+              🔗 Invite
+            </button>
             {/* Voice call controls */}
             {joined && (
               inCall ? (
@@ -514,6 +521,75 @@ export default function RoomPage() {
                 </div>
               )}
             </>
+          )}
+          {/* ── Invite Modal ────────────────────────────────── */}
+          {showInvite && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
+              style={{background:"rgba(0,0,0,0.7)"}}
+              onClick={() => setShowInvite(false)}>
+              <div className="w-full max-w-sm rounded-2xl p-6"
+                style={{background:"#141210",border:"1px solid rgba(255,255,255,0.1)"}}
+                onClick={e => e.stopPropagation()}>
+
+                <h3 className="font-syne font-bold text-paper text-lg mb-1">Invite People</h3>
+                <p className="text-xs font-dm-sans mb-5" style={{color:"#8A8480"}}>
+                  Share this link to invite people to <strong style={{color:"#C4531A"}}>{room.name}</strong>
+                </p>
+
+                {/* Link box */}
+                <div className="flex gap-2 mb-4">
+                  <div className="flex-1 px-3 py-2.5 rounded-xl text-xs font-dm-sans truncate"
+                    style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",color:"#8A8480"}}>
+                    {typeof window !== "undefined" ? window.location.href : ""}
+                  </div>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(window.location.href);
+                      toast.success("Link copied! 🔗");
+                    }}
+                    className="px-4 py-2.5 rounded-xl text-xs font-bold flex-shrink-0"
+                    style={{background:"#C4531A",color:"#fff"}}>
+                    Copy
+                  </button>
+                </div>
+
+                {/* Share options */}
+                <div className="grid grid-cols-3 gap-2 mb-5">
+                  <button onClick={() => {
+                    window.open(`https://wa.me/?text=Join%20${encodeURIComponent(room.name)}%20on%20Planet%20Mall!%20${encodeURIComponent(window.location.href)}`,"_blank");
+                  }} className="flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all"
+                    style={{background:"rgba(37,211,102,0.1)",border:"1px solid rgba(37,211,102,0.2)"}}>
+                    <span className="text-xl">💬</span>
+                    <span className="text-[10px] font-dm-sans font-semibold" style={{color:"#25D366"}}>WhatsApp</span>
+                  </button>
+                  <button onClick={() => {
+                    window.open(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent("Join " + room.name + " on Planet Mall!")}`, "_blank");
+                  }} className="flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all"
+                    style={{background:"rgba(0,136,204,0.1)",border:"1px solid rgba(0,136,204,0.2)"}}>
+                    <span className="text-xl">✈️</span>
+                    <span className="text-[10px] font-dm-sans font-semibold" style={{color:"#0088cc"}}>Telegram</span>
+                  </button>
+                  <button onClick={() => {
+                    if (navigator.share) {
+                      navigator.share({ title: room.name, text: `Join ${room.name} on Planet Mall!`, url: window.location.href });
+                    } else {
+                      navigator.clipboard.writeText(window.location.href);
+                      toast.success("Link copied!");
+                    }
+                  }} className="flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all"
+                    style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)"}}>
+                    <span className="text-xl">📤</span>
+                    <span className="text-[10px] font-dm-sans font-semibold" style={{color:"#8A8480"}}>More</span>
+                  </button>
+                </div>
+
+                <button onClick={() => setShowInvite(false)}
+                  className="w-full py-2.5 rounded-xl text-sm font-dm-sans font-semibold"
+                  style={{background:"rgba(255,255,255,0.06)",color:"#8A8480"}}>
+                  Close
+                </button>
+              </div>
+            </div>
           )}
         </div>
       </Layout>
