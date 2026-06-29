@@ -243,22 +243,47 @@ export default function TipsterProfilePage() {
                     <p className="text-muted font-dm-sans">No predictions posted yet</p>
                   </div>
                 ) : predictions.map(p => (
-                  <div key={p.id} className="rounded-2xl overflow-hidden" style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)"}}>
-                    <div className="px-4 pt-4 pb-2" style={{borderBottom:"1px solid rgba(255,255,255,0.06)"}}>
+                  <div key={p.id} className="rounded-2xl overflow-hidden relative"
+                    style={{
+                      background:"rgba(255,255,255,0.03)",
+                      border:`1px solid ${
+                        p.result === "won"  ? "rgba(42,107,69,0.4)"   :
+                        p.result === "lost" ? "rgba(196,83,26,0.4)"   :
+                        p.result === "void" ? "rgba(138,132,128,0.3)" :
+                        "rgba(255,255,255,0.06)"
+                      }`,
+                    }}>
+
+                    {/* Result color bar at top */}
+                    {p.result !== "pending" && (
+                      <div className="h-1 w-full" style={{
+                        background:
+                          p.result === "won"  ? "#2A6B45" :
+                          p.result === "lost" ? "#C4531A" : "#8A8480"
+                      }} />
+                    )}
+
+                    {/* Card header */}
+                    <div className="px-4 pt-3 pb-2" style={{borderBottom:"1px solid rgba(255,255,255,0.06)"}}>
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-dm-sans px-2 py-0.5 rounded-full" style={{background:"rgba(255,255,255,0.04)",color:"#8A8480"}}>{p.category}</span>
                         <span className="text-xs font-dm-sans" style={{color:"#8A8480"}}>{timeAgo(p.createdAt as any)}</span>
                       </div>
                     </div>
+
                     <div className="px-4 py-3">
                       <p className="text-xs font-dm-sans mb-2" style={{color:"#8A8480"}}>
                         {getLeagueFlag(p.league)} {p.league} · 📅 {p.matchDate} {p.matchTime}
                       </p>
+
+                      {/* Teams */}
                       <div className="flex items-center justify-between mb-3">
                         <span className="font-syne font-bold text-paper">{getTeamDisplay(p.homeTeam)}</span>
                         <span className="text-xs font-dm-sans px-2" style={{color:"#8A8480"}}>vs</span>
                         <span className="font-syne font-bold text-paper">{getTeamDisplay(p.awayTeam)}</span>
                       </div>
+
+                      {/* Tip + odds */}
                       <div className="flex items-center gap-3 mb-3">
                         <div className="flex-1 px-3 py-2 rounded-xl" style={{background:"rgba(212,168,75,0.08)",border:"1px solid rgba(212,168,75,0.2)"}}>
                           <p className="text-xs font-dm-sans font-semibold" style={{color:"#D4A84B"}}>🎯 {p.tip}</p>
@@ -267,15 +292,43 @@ export default function TipsterProfilePage() {
                           <p className="font-syne font-bold text-sm text-black">{p.odds}</p>
                         </div>
                       </div>
+
                       {p.analysis && <p className="text-xs font-dm-sans mb-3" style={{color:"#8A8480"}}>{p.analysis}</p>}
 
+                      {/* ── Result banner ── */}
+                      {p.result === "won" && (
+                        <div className="flex items-center justify-center gap-2 py-2.5 rounded-xl mb-3 font-syne font-bold text-sm"
+                          style={{background:"rgba(42,107,69,0.2)",border:"1px solid rgba(42,107,69,0.4)",color:"#4ade80"}}>
+                          ✅ WON
+                        </div>
+                      )}
+                      {p.result === "lost" && (
+                        <div className="flex items-center justify-center gap-2 py-2.5 rounded-xl mb-3 font-syne font-bold text-sm"
+                          style={{background:"rgba(196,83,26,0.2)",border:"1px solid rgba(196,83,26,0.4)",color:"#f87171"}}>
+                          ❌ LOST
+                        </div>
+                      )}
+                      {p.result === "void" && (
+                        <div className="flex items-center justify-center gap-2 py-2.5 rounded-xl mb-3 font-syne font-bold text-sm"
+                          style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",color:"#8A8480"}}>
+                          🔄 VOID
+                        </div>
+                      )}
+                      {p.result === "pending" && (
+                        <div className="flex items-center justify-center gap-2 py-2 rounded-xl mb-3 font-dm-sans text-xs"
+                          style={{background:"rgba(212,168,75,0.06)",border:"1px solid rgba(212,168,75,0.15)",color:"#D4A84B"}}>
+                          ⏳ Pending result...
+                        </div>
+                      )}
+
+                      {/* Bottom row */}
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-dm-sans font-bold px-2.5 py-1 rounded-full"
-                          style={{background:`${RESULT_COLORS[p.result]}20`,color:RESULT_COLORS[p.result]}}>
-                          {RESULT_LABELS[p.result]}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-dm-sans" style={{color:"#8A8480"}}>❤️ {p.likes}</span>
+                        <button onClick={()=>handleLike(p.id!)} disabled={likedIds.has(p.id!)}
+                          className="text-xs font-dm-sans transition-all"
+                          style={{color: likedIds.has(p.id!) ? "#C4531A" : "#8A8480", background:"none", border:"none", cursor: likedIds.has(p.id!) ? "default" : "pointer"}}>
+                          ❤️ {p.likes}
+                        </button>
+                        <div className="flex items-center gap-1.5">
                           {isOwner && (
                             <button onClick={()=>router.push(`/predictions/edit/${p.id}`)}
                               className="px-2 py-0.5 rounded-lg text-[10px] font-bold"
@@ -286,16 +339,19 @@ export default function TipsterProfilePage() {
                           {isOwner && p.result === "pending" && (
                             <div className="flex gap-1">
                               <button onClick={()=>handleUpdateResult(p.id!, "won")}
-                                className="px-2 py-0.5 rounded-lg text-[10px] font-bold" style={{background:"rgba(42,107,69,0.2)",color:"#2A6B45"}}>
-                                Won
+                                className="px-2.5 py-1 rounded-lg text-[10px] font-bold"
+                                style={{background:"rgba(42,107,69,0.25)",color:"#4ade80",border:"1px solid rgba(42,107,69,0.3)"}}>
+                                ✅ Won
                               </button>
                               <button onClick={()=>handleUpdateResult(p.id!, "lost")}
-                                className="px-2 py-0.5 rounded-lg text-[10px] font-bold" style={{background:"rgba(196,83,26,0.2)",color:"#C4531A"}}>
-                                Lost
+                                className="px-2.5 py-1 rounded-lg text-[10px] font-bold"
+                                style={{background:"rgba(196,83,26,0.25)",color:"#f87171",border:"1px solid rgba(196,83,26,0.3)"}}>
+                                ❌ Lost
                               </button>
                               <button onClick={()=>handleUpdateResult(p.id!, "void")}
-                                className="px-2 py-0.5 rounded-lg text-[10px] font-bold" style={{background:"rgba(255,255,255,0.06)",color:"#8A8480"}}>
-                                Void
+                                className="px-2.5 py-1 rounded-lg text-[10px] font-bold"
+                                style={{background:"rgba(255,255,255,0.06)",color:"#8A8480",border:"1px solid rgba(255,255,255,0.1)"}}>
+                                🔄 Void
                               </button>
                             </div>
                           )}
