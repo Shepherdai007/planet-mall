@@ -16,6 +16,7 @@ import {
 } from "@/services/roomService";
 import { db } from "@/lib/firebase";
 import { doc, updateDoc, onSnapshot } from "firebase/firestore";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import toast           from "react-hot-toast";
 
 // Agora
@@ -40,6 +41,12 @@ export default function RoomPage() {
   const [tab,       setTab]       = useState<"chat"|"members">("chat");
   const [paying,      setPaying]      = useState(false);
   const [showInvite,  setShowInvite]  = useState(false);
+  const [showEdit,    setShowEdit]    = useState(false);
+  const [editForm,    setEditForm]    = useState({ name:"", description:"" });
+  const [editPhoto,   setEditPhoto]   = useState<File | null>(null);
+  const [editPreview, setEditPreview] = useState("");
+  const [editSaving,  setEditSaving]  = useState(false);
+  const editFileRef = useRef<HTMLInputElement>(null);
 
   // Voice call state
   const [inCall,         setInCall]         = useState(false);
@@ -168,6 +175,32 @@ export default function RoomPage() {
     toast.success(allowedToTalk.includes(userId) ? "Speaker muted" : "Speaker approved ✅");
   }
 
+  // ── Owner: edit room ──────────────────────────────────────────
+  async function handleSaveEdit() {
+    if (!room || !user) return;
+    setEditSaving(true);
+    try {
+      let photoURL = room.photo;
+      if (editPhoto) {
+        const storage = getStorage();
+        const sRef = storageRef(storage, `rooms/${user.uid}/${Date.now()}_${editPhoto.name}`);
+        await uploadBytes(sRef, editPhoto);
+        photoURL = await getDownloadURL(sRef);
+      }
+      await updateDoc(doc(db, "rooms", room.id!), {
+        name:        editForm.name        || room.name,
+        description: editForm.description || room.description,
+        photo:       photoURL,
+      });
+      setRoom(r => r ? { ...r, name: editForm.name || r.name, description: editForm.description || r.description, photo: photoURL } : r);
+      toast.success("Room updated! ✅");
+      setShowEdit(false);
+      setEditPhoto(null);
+      setEditPreview("");
+    } catch { toast.error("Failed to update"); }
+    finally { setEditSaving(false); }
+  }
+
   // ── Voice call ────────────────────────────────────────────────
   async function startVoiceCall() {
     if (!AgoraRTC || !room) return;
@@ -270,6 +303,14 @@ export default function RoomPage() {
               style={{background:"rgba(255,255,255,0.06)",color:"#8A8480"}}>
               🔗 Invite
             </button>
+            {/* Edit button — owner only */}
+            {isOwner && (
+              <button onClick={() => { setEditForm({ name: room.name, description: room.description }); setShowEdit(true); }}
+                className="px-3 py-1.5 rounded-xl text-xs font-bold flex-shrink-0"
+                style={{background:"rgba(196,83,26,0.1)",color:"#C4531A"}}>
+                ✏️ Edit
+              </button>
+            )}
             {/* Voice call controls */}
             {joined && (
               inCall ? (
@@ -522,6 +563,78 @@ export default function RoomPage() {
               )}
             </>
           )}
+          {/* ── Edit Room Modal ──────────────────────────────── */}
+          {showEdit && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
+              style={{background:"rgba(0,0,0,0.75)"}}
+              onClick={() => setShowEdit(false)}>
+              <div className="w-full max-w-sm rounded-2xl p-6"
+                style={{background:"#141210",border:"1px solid rgba(255,255,255,0.1)"}}
+                onClick={e => e.stopPropagation()}>
+
+                <h3 className="font-syne font-bold text-paper text-lg mb-5">Edit Room</h3>
+
+                {/* Photo upload */}
+                <input ref={editFileRef} type="file" accept="image/*" className="hidden"
+                  onChange={e => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    setEditPhoto(f);
+                    setEditPreview(URL.createObjectURL(f));
+                  }} />
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-16 h-16 rounded-xl overflow-hidden flex items-center justify-center font-bold text-xl flex-shrink-0 cursor-pointer"
+                    style={{background:"rgba(196,83,26,0.15)",color:"#C4531A",border:"2px dashed rgba(196,83,26,0.4)"}}
+                    onClick={() => editFileRef.current?.click()}>
+                    {editPreview
+                      ? <img src={editPreview} alt="" className="w-full h-full object-cover" />
+                      : room.photo
+                        ? <img src={room.photo} alt="" className="w-full h-full object-cover" />
+                        : "📷"}
+                  </div>
+                  <div className="flex-1">
+                    <button onClick={() => editFileRef.current?.click()}
+                      className="w-full py-2 rounded-xl text-xs font-dm-sans font-semibold"
+                      style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",color:"#8A8480"}}>
+                      {editPreview ? "Change Photo" : "Upload Photo"}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Name */}
+                <div className="mb-3">
+                  <label className="text-xs font-dm-sans font-semibold mb-1.5 block" style={{color:"#8A8480"}}>ROOM NAME</label>
+                  <input value={editForm.name}
+                    onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
+                    className="w-full px-4 py-2.5 rounded-xl text-sm font-dm-sans text-paper outline-none"
+                    style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)"}} />
+                </div>
+
+                {/* Description */}
+                <div className="mb-5">
+                  <label className="text-xs font-dm-sans font-semibold mb-1.5 block" style={{color:"#8A8480"}}>DESCRIPTION</label>
+                  <textarea value={editForm.description} rows={3}
+                    onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
+                    className="w-full px-4 py-2.5 rounded-xl text-sm font-dm-sans text-paper outline-none resize-none"
+                    style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)"}} />
+                </div>
+
+                <div className="flex gap-2">
+                  <button onClick={() => setShowEdit(false)}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-dm-sans font-semibold"
+                    style={{background:"rgba(255,255,255,0.06)",color:"#8A8480"}}>
+                    Cancel
+                  </button>
+                  <button onClick={handleSaveEdit} disabled={editSaving}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-dm-sans font-bold disabled:opacity-50"
+                    style={{background:"#C4531A",color:"#fff"}}>
+                    {editSaving ? "Saving..." : "Save Changes"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* ── Invite Modal ────────────────────────────────── */}
           {showInvite && (
             <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
