@@ -34,8 +34,52 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const session  = event.data.object as any;
       const userId   = session.metadata?.userId;
       const plan     = session.metadata?.plan;
-      const product  = session.metadata?.product;   // one-time payments: job_post, resume_builder, boost_listing
+      const product  = session.metadata?.product;
+      const type     = session.metadata?.type;
       const subId    = session.subscription;
+
+      // ── Marketplace order — activate escrow ──────────────────
+      if (type === "marketplace_order") {
+        const orderId = session.metadata?.orderId;
+        if (orderId) {
+          const shipDeadline = new Date();
+          shipDeadline.setHours(shipDeadline.getHours() + 48);
+
+          await adminDb.collection("orders").doc(orderId).update({
+            escrowStatus:      "paid_held",
+            stripePaymentIntent: session.payment_intent || "",
+            shipByDeadline:    shipDeadline,
+            updatedAt:         new Date(),
+          });
+
+          // Notify seller to ship within 48hrs
+          const orderSnap = await adminDb.collection("orders").doc(orderId).get();
+          const order     = orderSnap.data()!;
+          await adminDb.collection("notifications").doc(order.sellerId)
+            .collection("items").add({
+              userId:    order.sellerId,
+              type:      "new_order",
+              title:     "🛍️ New Order! Ship within 48 hours",
+              body:      `${order.buyerName} ordered ${order.productName} x${order.quantity}. You must ship within 48hrs or the order will be auto-refunded.`,
+              link:      `/seller/dashboard`,
+              read:      false,
+              createdAt: new Date(),
+            });
+
+          // Notify buyer
+          await adminDb.collection("notifications").doc(order.buyerId)
+            .collection("items").add({
+              userId:    order.buyerId,
+              type:      "payment",
+              title:     "✅ Payment Confirmed — Escrow Active",
+              body:      `Your payment of CA$${order.totalAmount} for ${order.productName} is held safely. You'll be notified when it ships.`,
+              link:      `/orders/${orderId}`,
+              read:      false,
+              createdAt: new Date(),
+            });
+        }
+        break;
+      }
 
       // ── One-time payments (job posting, resume builder, listing boost) ──
       if (product && userId) {
@@ -125,4 +169,49 @@ async function getUserIdFromCustomer(customerId: string): Promise<string | null>
     .get();
   if (snap.empty) return null;
   return snap.docs[0].id;
+}
+
+// ── Auto-refund overdue orders (call this from a cron job or webhook) ──
+// Orders where seller didn't ship within 48hrs get auto-refunded
+export async function checkAndRefundOverdueOrders(): Promise<void> {
+  const now  = new Date();
+  const snap = await adminDb.collection("orders")
+    .where("escrowStatus", "==", "paid_held")
+    .get();
+
+  for (const docSnap of snap.docs) {
+    const order    = docSnap.data();
+    const deadline = order.shipByDeadline?.toDate?.() || new Date(order.shipByDeadline);
+    if (now > deadline) {
+      await docSnap.ref.update({
+        escrowStatus: "refunded",
+        adminNote:    "Auto-refunded: seller did not ship within 48 hours",
+        updatedAt:    new Date(),
+      });
+
+      // Notify buyer of refund
+      await adminDb.collection("notifications").doc(order.buyerId)
+        .collection("items").add({
+          userId:    order.buyerId,
+          type:      "payment",
+          title:     "↩️ Order Refunded",
+          body:      `Your order for ${order.productName} was automatically refunded because the seller did not ship within 48 hours.`,
+          link:      `/orders/${docSnap.id}`,
+          read:      false,
+          createdAt: new Date(),
+        });
+
+      // Notify seller
+      await adminDb.collection("notifications").doc(order.sellerId)
+        .collection("items").add({
+          userId:    order.sellerId,
+          type:      "system",
+          title:     "⚠️ Order Auto-Refunded",
+          body:      `Order for ${order.productName} was refunded to the buyer because you did not ship within 48 hours.`,
+          link:      `/seller/dashboard`,
+          read:      false,
+          createdAt: new Date(),
+        });
+    }
+  }
 }
