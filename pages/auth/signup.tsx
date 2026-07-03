@@ -57,6 +57,8 @@ export default function SignupPage() {
 
   const pwStrength = passwordStrength(password);
 
+  const pwStrength = passwordStrength(password);
+
   // Pre-select role from URL param
   useEffect(() => {
     const urlRole = router.query.role as Role | undefined;
@@ -70,7 +72,12 @@ export default function SignupPage() {
     return () => clearTimeout(t);
   }, [countdown]);
 
-  if (isLoggedIn) { router.replace("/"); return null; }
+  // Only redirect away if logged in AND not in the middle of signup (step 2 or 3)
+  useEffect(() => {
+    if (isLoggedIn && step === 1) {
+      router.replace("/");
+    }
+  }, [isLoggedIn, step]);
 
   function handleRoleSelect(r: Role) {
     setRole(r);
