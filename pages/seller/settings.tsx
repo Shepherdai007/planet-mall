@@ -429,6 +429,7 @@ function StoreSettings() {
           </Section>
 
           {/* Subscription */}
+          <Section title="Subscription">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-dm-sans font-semibold" style={{color:"#1A1714"}}>Manage your plan</p>
