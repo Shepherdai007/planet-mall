@@ -9,8 +9,9 @@ import { useAuth }    from "@/context/AuthContext";
 import { auth, db }   from "@/lib/firebase";
 import {
   RecaptchaVerifier,
+  signInWithPhoneNumber,
   PhoneAuthProvider,
-  updatePhoneNumber,
+  signInWithCredential,
 } from "firebase/auth";
 import { doc, updateDoc, getDocs, query, collection, where } from "firebase/firestore";
 
@@ -38,16 +39,15 @@ export default function VerifyPhonePage() {
     return () => clearTimeout(t);
   }, [countdown]);
 
-  function setupRecaptcha() {
-    if (!recaptchaRef.current) {
+  // Init reCAPTCHA on mount
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
       recaptchaRef.current = new RecaptchaVerifier(auth, "recaptcha-container", {
-        size: "normal",
-        callback: () => {},
+        size: "invisible",
       });
-      recaptchaRef.current.render();
-    }
-    return recaptchaRef.current;
-  }
+    } catch {}
+  }, []);
 
   async function handleSendOtp() {
     if (!phone || phone.length < 10) { toast.error("Enter a valid phone number"); return; }
@@ -61,20 +61,25 @@ export default function VerifyPhonePage() {
 
     setSendingOtp(true);
     try {
-      const verifier  = setupRecaptcha();
-      const provider  = new PhoneAuthProvider(auth);
-      const vId       = await provider.verifyPhoneNumber(phone, verifier);
-      setVerificationId(vId);
+      if (!recaptchaRef.current) {
+        recaptchaRef.current = new RecaptchaVerifier(auth, "recaptcha-container", {
+          size: "invisible",
+        });
+      }
+      const confirmationResult = await signInWithPhoneNumber(auth, phone, recaptchaRef.current);
+      (window as any).confirmationResult = confirmationResult;
+      setVerificationId(confirmationResult.verificationId);
       setOtpSent(true);
       setCountdown(60);
       toast.success(`Code sent to ${phone} 📱`);
     } catch (err: any) {
+      console.error(err);
       if (err.code === "auth/invalid-phone-number") {
         toast.error("Invalid number — include country code e.g. +1 416...");
       } else if (err.code === "auth/too-many-requests") {
         toast.error("Too many attempts. Try again later.");
       } else {
-        toast.error("Failed to send code. Try again.");
+        toast.error("Failed to send code: " + err.message);
       }
       recaptchaRef.current = null;
     } finally {
@@ -98,8 +103,9 @@ export default function VerifyPhonePage() {
 
     setVerifying(true);
     try {
-      const credential = PhoneAuthProvider.credential(verificationId, code);
-      await updatePhoneNumber(user, credential);
+      const confirmationResult = (window as any).confirmationResult;
+      if (!confirmationResult) { toast.error("Session expired. Try again."); return; }
+      await confirmationResult.confirm(code);
       await updateDoc(doc(db, "users", user.uid), { phone, phoneVerified: true });
       try {
         await updateDoc(doc(db, "trustProfiles", user.uid), { isPhoneVerified: true });
@@ -109,10 +115,8 @@ export default function VerifyPhonePage() {
     } catch (err: any) {
       if (err.code === "auth/invalid-verification-code") {
         toast.error("Wrong code. Check your SMS.");
-      } else if (err.code === "auth/credential-already-in-use") {
-        toast.error("Phone already linked to another account.");
       } else {
-        toast.error("Verification failed. Try again.");
+        toast.error("Verification failed: " + err.message);
       }
     } finally {
       setVerifying(false);
@@ -160,8 +164,8 @@ export default function VerifyPhonePage() {
                 </p>
               </div>
 
-              {/* reCAPTCHA */}
-              <div id="recaptcha-container" className="flex justify-center" />
+              {/* Invisible reCAPTCHA */}
+              <div id="recaptcha-container" style={{display:"none"}} />
 
               <button onClick={handleSendOtp} disabled={sendingOtp || !phone}
                 className="w-full py-3.5 bg-rust text-white font-dm-sans font-semibold rounded-xl disabled:opacity-50 flex items-center justify-center gap-2">
