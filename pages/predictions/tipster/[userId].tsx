@@ -281,30 +281,123 @@ export default function TipsterProfilePage() {
                     </div>
 
                     <div className="px-4 py-3">
-                      <p className="text-xs font-dm-sans mb-2" style={{color:"#8A8480"}}>
-                        {getLeagueFlag(p.league)} {p.league} · 📅 {p.matchDate} {p.matchTime}
-                      </p>
 
-                      {/* Teams */}
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="font-syne font-bold text-paper">{getTeamDisplay(p.homeTeam)}</span>
-                        <span className="text-xs font-dm-sans px-2" style={{color:"#8A8480"}}>vs</span>
-                        <span className="font-syne font-bold text-paper">{getTeamDisplay(p.awayTeam)}</span>
-                      </div>
+                      {/* ── BETSLIP CARD ── */}
+                      {(p as any).isSlip ? (
+                        <>
+                          {/* Slip image */}
+                          {(p as any).imageUrl && (
+                            <img src={(p as any).imageUrl} alt="Betslip"
+                              className="w-full rounded-xl mb-3 object-cover" style={{maxHeight:"280px"}} />
+                          )}
 
-                      {/* Tip + odds */}
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="flex-1 px-3 py-2 rounded-xl" style={{background:"rgba(212,168,75,0.08)",border:"1px solid rgba(212,168,75,0.2)"}}>
-                          <p className="text-xs font-dm-sans font-semibold" style={{color:"#D4A84B"}}>🎯 {p.tip}</p>
-                        </div>
-                        <div className="px-3 py-2 rounded-xl text-center" style={{background:"#D4A84B"}}>
-                          <p className="font-syne font-bold text-sm text-black">{p.odds}</p>
-                        </div>
-                      </div>
+                          {/* Bookmaker + odds */}
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-xs font-dm-sans font-bold px-3 py-1 rounded-full"
+                              style={{background:"rgba(255,255,255,0.06)",color:"#8A8480"}}>
+                              🎰 {(p as any).bookmaker}
+                            </span>
+                            <div className="px-3 py-1.5 rounded-xl text-center" style={{background:"#D4A84B"}}>
+                              <p className="font-syne font-bold text-sm text-black">Odds {p.odds}</p>
+                            </div>
+                          </div>
 
-                      {p.analysis && <p className="text-xs font-dm-sans mb-3" style={{color:"#8A8480"}}>{p.analysis}</p>}
+                          {/* Booking code — BIG tappable */}
+                          <button
+                            onClick={() => {
+                              const code = (p as any).bookingCode;
+                              navigator.clipboard.writeText(code);
+                              toast.success(`Code ${code} copied! 🎰`);
+                            }}
+                            className="w-full py-4 rounded-xl mb-3 transition-all active:scale-95"
+                            style={{background:"rgba(212,168,75,0.1)",border:"2px dashed rgba(212,168,75,0.4)"}}>
+                            <p className="text-xs font-dm-sans mb-1" style={{color:"#8A8480"}}>Tap to copy booking code</p>
+                            <p className="font-syne font-bold text-2xl tracking-widest" style={{color:"#D4A84B"}}>
+                              {(p as any).bookingCode}
+                            </p>
+                          </button>
 
-                      {/* ── Result banner ── */}
+                          {/* Caption */}
+                          {p.analysis && (
+                            <p className="text-xs font-dm-sans mb-3" style={{color:"#8A8480"}}>{p.analysis}</p>
+                          )}
+
+                          {/* Confidence + stake */}
+                          {((p as any).confidence || (p as any).stakeAdvice) && (
+                            <div className="flex gap-2 mb-3 flex-wrap">
+                              {(p as any).confidence && (
+                                <span className="text-[10px] font-bold px-2 py-1 rounded-full"
+                                  style={{background:"rgba(196,83,26,0.15)",color:"#C4531A"}}>
+                                  🔥 {(p as any).confidence}
+                                </span>
+                              )}
+                              {(p as any).stakeAdvice && (
+                                <span className="text-[10px] font-bold px-2 py-1 rounded-full"
+                                  style={{background:"rgba(255,255,255,0.06)",color:"#8A8480"}}>
+                                  🎯 {(p as any).stakeAdvice}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        /* ── NORMAL PREDICTION CARD ── */
+                        <>
+                          <p className="text-xs font-dm-sans mb-2" style={{color:"#8A8480"}}>
+                            {getLeagueFlag(p.league)} {p.league} · 📅 {p.matchDate} {p.matchTime}
+                          </p>
+
+                          {/* Teams */}
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="font-syne font-bold text-paper">{getTeamDisplay(p.homeTeam)}</span>
+                            <span className="text-xs font-dm-sans px-2" style={{color:"#8A8480"}}>vs</span>
+                            <span className="font-syne font-bold text-paper">{getTeamDisplay(p.awayTeam)}</span>
+                          </div>
+
+                          {/* Tip + odds */}
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="flex-1 px-3 py-2 rounded-xl" style={{background:"rgba(212,168,75,0.08)",border:"1px solid rgba(212,168,75,0.2)"}}>
+                              <p className="text-xs font-dm-sans font-semibold" style={{color:"#D4A84B"}}>🎯 {p.tip}</p>
+                            </div>
+                            <div className="px-3 py-2 rounded-xl text-center" style={{background:"#D4A84B"}}>
+                              <p className="font-syne font-bold text-sm text-black">{p.odds}</p>
+                            </div>
+                          </div>
+
+                          {/* Image if any */}
+                          {(p as any).imageUrl && (
+                            <img src={(p as any).imageUrl} alt="" className="w-full rounded-xl mb-3 object-cover" style={{maxHeight:"200px"}} />
+                          )}
+
+                          {p.analysis && <p className="text-xs font-dm-sans mb-3" style={{color:"#8A8480"}}>{p.analysis}</p>}
+
+                          {/* Spice badges */}
+                          {((p as any).confidence || (p as any).formStats || (p as any).stakeAdvice) && (
+                            <div className="flex gap-2 mb-3 flex-wrap">
+                              {(p as any).confidence && (
+                                <span className="text-[10px] font-bold px-2 py-1 rounded-full"
+                                  style={{background:"rgba(196,83,26,0.15)",color:"#C4531A"}}>
+                                  🔥 {(p as any).confidence}
+                                </span>
+                              )}
+                              {(p as any).stakeAdvice && (
+                                <span className="text-[10px] font-bold px-2 py-1 rounded-full"
+                                  style={{background:"rgba(255,255,255,0.06)",color:"#8A8480"}}>
+                                  🎯 {(p as any).stakeAdvice}
+                                </span>
+                              )}
+                              {(p as any).formStats && (
+                                <span className="text-[10px] font-dm-sans px-2 py-1 rounded-full"
+                                  style={{background:"rgba(212,168,75,0.08)",color:"#D4A84B"}}>
+                                  📊 {(p as any).formStats}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      {/* ── Result banner (same for both) ── */}
                       {p.result === "won" && (
                         <div className="flex items-center justify-center gap-2 py-2.5 rounded-xl mb-3 font-syne font-bold text-sm"
                           style={{background:"rgba(42,107,69,0.2)",border:"1px solid rgba(42,107,69,0.4)",color:"#4ade80"}}>
