@@ -185,9 +185,8 @@ export default function SignupPage() {
       await signUpWithEmail(email, password, name, role);
       toast.success("Account created!");
       if (role === "seller") {
-        setStep(3);
+        router.push("/auth/verify-phone");
       } else {
-        signingUpRef.current = false;
         toast.success("Welcome to Planet Mall 🎉");
         router.push("/explore");
       }
@@ -213,7 +212,7 @@ export default function SignupPage() {
       await createUserDocument(user, role, user.displayName || "");
       toast.success("Account created with Google!");
       if (role === "seller") {
-        setStep(3);
+        router.push("/auth/verify-phone");
       } else {
         signingUpRef.current = false;
         router.push("/explore");
