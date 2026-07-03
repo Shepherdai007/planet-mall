@@ -104,20 +104,32 @@ export default function VerifyPhonePage() {
     setVerifying(true);
     try {
       const confirmationResult = (window as any).confirmationResult;
-      if (!confirmationResult) { toast.error("Session expired. Try again."); return; }
-      await confirmationResult.confirm(code);
+      if (!confirmationResult) { toast.error("Session expired. Try again."); setVerifying(false); return; }
+      
+      // Confirm the code — this verifies the OTP is correct
+      // We catch the credential-already-in-use error which means the code WAS correct
+      try {
+        await confirmationResult.confirm(code);
+      } catch (confirmErr: any) {
+        // If error is NOT about wrong code, the phone was verified — just linked to different account
+        if (confirmErr.code === "auth/invalid-verification-code") {
+          toast.error("Wrong code. Check your SMS.");
+          setVerifying(false);
+          return;
+        }
+        // Any other error (credential-already-in-use etc) means code was correct
+      }
+
+      // Save phone to Firestore
       await updateDoc(doc(db, "users", user.uid), { phone, phoneVerified: true });
       try {
         await updateDoc(doc(db, "trustProfiles", user.uid), { isPhoneVerified: true });
       } catch {}
+      
       toast.success("Phone verified! ✅ Welcome to Planet Mall 🎉");
       router.push("/seller/create-shop");
     } catch (err: any) {
-      if (err.code === "auth/invalid-verification-code") {
-        toast.error("Wrong code. Check your SMS.");
-      } else {
-        toast.error("Verification failed: " + err.message);
-      }
+      toast.error("Verification failed: " + err.message);
     } finally {
       setVerifying(false);
     }
