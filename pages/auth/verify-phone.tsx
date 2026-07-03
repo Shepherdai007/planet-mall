@@ -42,11 +42,20 @@ export default function VerifyPhonePage() {
   // Init reCAPTCHA on mount
   useEffect(() => {
     if (typeof window === "undefined") return;
+    // Clean up any existing reCAPTCHA first
+    const container = document.getElementById("recaptcha-container");
+    if (container) container.innerHTML = "";
     try {
       recaptchaRef.current = new RecaptchaVerifier(auth, "recaptcha-container", {
         size: "invisible",
       });
-    } catch {}
+    } catch (e) {
+      console.error("reCAPTCHA init error:", e);
+    }
+    return () => {
+      // Cleanup on unmount
+      recaptchaRef.current = null;
+    };
   }, []);
 
   async function handleSendOtp() {
