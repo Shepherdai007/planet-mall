@@ -78,8 +78,10 @@ export default function SignupPage() {
   function setupRecaptcha() {
     if (!recaptchaRef.current) {
       recaptchaRef.current = new RecaptchaVerifier(auth, "recaptcha-container", {
-        size: "invisible",
+        size: "normal",
+        callback: () => {},
       });
+      recaptchaRef.current.render();
     }
     return recaptchaRef.current;
   }
@@ -224,9 +226,6 @@ export default function SignupPage() {
   return (
     <>
       <Head><title>Create account — Planet Mall</title></Head>
-
-      {/* Invisible reCAPTCHA container */}
-      <div id="recaptcha-container" />
 
       <div className="min-h-screen flex items-center justify-center px-4 py-12 relative overflow-hidden" style={{background:"#0A0908"}}>
         <video autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover" style={{zIndex:0}}>
@@ -391,6 +390,9 @@ export default function SignupPage() {
                       e.g. +1 for Canada/USA, +44 for UK, +233 for Ghana, +234 for Nigeria
                     </p>
                   </div>
+
+                  {/* reCAPTCHA renders here */}
+                  <div id="recaptcha-container" className="flex justify-center" />
 
                   <button onClick={handleSendOtp} disabled={sendingOtp || !phone}
                     className="w-full py-3.5 bg-rust text-white font-dm-sans font-semibold rounded-xl disabled:opacity-50 flex items-center justify-center gap-2">
