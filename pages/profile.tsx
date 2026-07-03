@@ -6,7 +6,7 @@ import Link           from "next/link";
 import { useRouter }  from "next/router";
 import { useState }   from "react";
 import { updateProfile } from "firebase/auth";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc, getDocs, query, collection, where } from "firebase/firestore";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import toast          from "react-hot-toast";
 import Layout         from "@/components/Layout";
@@ -49,6 +49,11 @@ export default function ProfilePage() {
       const url = await getDownloadURL(task.snapshot.ref);
       await updateProfile(user, { photoURL: url });
       await updateDoc(doc(db, "users", user.uid), { photoURL: url });
+      // Auto-sync to tipster profile if exists
+      try {
+        const tipsterSnap = await getDocs(query(collection(db, "tipsters"), where("userId", "==", user.uid)));
+        if (!tipsterSnap.empty) await updateDoc(tipsterSnap.docs[0].ref, { photo: url });
+      } catch {}
       toast.success("Photo updated!");
       // Force page reload so navbar picks up new photo
       window.location.reload();

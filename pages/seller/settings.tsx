@@ -11,6 +11,9 @@ import toast             from "react-hot-toast";
 import ProtectedRoute    from "@/components/ProtectedRoute";
 import { useAuth }       from "@/context/AuthContext";
 import { getShopByOwner, updateShop, uploadShopImage } from "@/services/shopService";
+import { getTrustProfile, TRUST_LEVELS, type TrustProfile } from "@/services/trustService";
+import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import type { ShopData } from "@/services/shopService";
 
 export default function SettingsPage() {
@@ -28,6 +31,16 @@ function StoreSettings() {
   const [loading, setLoading] = useState(true);
   const [saving,  setSaving]  = useState(false);
   const [form,    setForm]    = useState<Partial<ShopData>>({});
+  const [trust,   setTrust]   = useState<TrustProfile | null>(null);
+  const [paymentInfo, setPaymentInfo] = useState({
+    etransferEmail: "",
+    paypalEmail:    "",
+    bankName:       "",
+    bankAccount:    "",
+    mobileMoneyNumber: "",
+    preferredMethod:   "etransfer",
+  });
+  const [savingPayment, setSavingPayment] = useState(false);
   const [logoPreview,   setLogoPreview]   = useState("");
   const [bannerPreview, setBannerPreview] = useState("");
   const [logoFile,   setLogoFile]   = useState<File | null>(null);
@@ -37,16 +50,38 @@ function StoreSettings() {
 
   useEffect(() => {
     if (!user) return;
-    getShopByOwner(user.uid).then(s => {
+    Promise.all([
+      getShopByOwner(user.uid),
+      getTrustProfile(user.uid),
+      getDoc(doc(db, "sellerPaymentInfo", user.uid)),
+    ]).then(([s, t, paySnap]) => {
       if (!s) { router.push("/seller/create-shop"); return; }
       setShop(s);
       setForm(s);
+      setTrust(t);
+      if (paySnap.exists()) {
+        setPaymentInfo(p => ({ ...p, ...paySnap.data() }));
+      }
       setLoading(false);
     });
   }, [user, router]);
 
   function up(field: keyof ShopData, value: string) {
     setForm(f => ({...f, [field]: value}));
+  }
+
+  async function savePaymentInfo() {
+    if (!user) return;
+    setSavingPayment(true);
+    try {
+      await setDoc(doc(db, "sellerPaymentInfo", user.uid), {
+        ...paymentInfo,
+        userId:    user.uid,
+        updatedAt: new Date(),
+      });
+      toast.success("Payment info saved! 💰");
+    } catch { toast.error("Failed to save payment info"); }
+    finally { setSavingPayment(false); }
   }
 
   async function handleSave() {
@@ -225,8 +260,175 @@ function StoreSettings() {
             </div>
           </Section>
 
-          {/* Danger zone */}
-          <Section title="Subscription">
+          {/* Trust Score */}
+          {trust && (
+            <Section title="Trust & Seller Level">
+              <div className="space-y-4">
+                {/* Level badge */}
+                <div className="flex items-center justify-between p-4 rounded-xl"
+                  style={{background:`${TRUST_LEVELS[trust.level].color}10`,border:`1px solid ${TRUST_LEVELS[trust.level].color}30`}}>
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl">{TRUST_LEVELS[trust.level].badge}</span>
+                    <div>
+                      <p className="font-syne font-bold text-sm" style={{color:TRUST_LEVELS[trust.level].color}}>
+                        Level {trust.level} — {TRUST_LEVELS[trust.level].label}
+                      </p>
+                      <p className="text-xs font-dm-sans mt-0.5" style={{color:"#8A8480"}}>
+                        {TRUST_LEVELS[trust.level].description}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-syne font-bold text-2xl" style={{color:TRUST_LEVELS[trust.level].color}}>{trust.score}</p>
+                    <p className="text-[10px] font-dm-sans" style={{color:"#8A8480"}}>Trust score</p>
+                  </div>
+                </div>
+
+                {/* Stats */}
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    {label:"Orders",   value:trust.totalOrders,     icon:"📦"},
+                    {label:"Disputes", value:trust.disputesAgainst, icon:"⚠️"},
+                    {label:"Max Order",value:`$${trust.maxOrderAmount}`, icon:"💰"},
+                  ].map(s => (
+                    <div key={s.label} className="p-3 rounded-xl text-center" style={{background:"#F6F1E9",border:"1px solid #E8E2D9"}}>
+                      <p className="text-lg">{s.icon}</p>
+                      <p className="font-syne font-bold text-sm" style={{color:"#1A1714"}}>{s.value}</p>
+                      <p className="text-[10px] font-dm-sans" style={{color:"#8A8480"}}>{s.label}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Verifications */}
+                <div className="space-y-2">
+                  <p className="text-xs font-dm-sans font-bold" style={{color:"#8A8480"}}>VERIFICATIONS</p>
+                  {[
+                    {label:"Phone verified",    done: trust.isPhoneVerified,  points:"+10 pts"},
+                    {label:"ID verified",        done: trust.isIdVerified,     points:"+20 pts"},
+                    {label:"Stripe connected",   done: trust.stripeConnected,  points:"+15 pts"},
+                  ].map(v => (
+                    <div key={v.label} className="flex items-center justify-between py-2 px-3 rounded-xl"
+                      style={{background: v.done ? "rgba(42,107,69,0.08)" : "rgba(255,255,255,0.5)",border:"1px solid #E8E2D9"}}>
+                      <div className="flex items-center gap-2">
+                        <span>{v.done ? "✅" : "⭕"}</span>
+                        <span className="text-sm font-dm-sans" style={{color:"#1A1714"}}>{v.label}</span>
+                      </div>
+                      <span className="text-xs font-dm-sans font-bold" style={{color: v.done ? "#2A6B45" : "#8A8480"}}>
+                        {v.done ? "Done" : v.points}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <p className="text-xs font-dm-sans" style={{color:"#8A8480"}}>
+                  ⏱️ Escrow hold: <strong>{trust.escrowHoldDays} days</strong> — completes faster as you level up
+                </p>
+              </div>
+            </Section>
+          )}
+
+          {/* Payment Info */}
+          <Section title="💰 Payment Info">
+            <p className="text-xs font-dm-sans mb-4" style={{color:"#8A8480"}}>
+              Where should Planet Mall send your earnings? We'll use this to pay you when buyers confirm delivery.
+            </p>
+
+            {/* Preferred method */}
+            <div className="mb-4">
+              <label className="block text-sm font-semibold font-syne mb-2" style={{color:"#1A1714"}}>Preferred payout method</label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  {value:"etransfer",    label:"🏦 E-Transfer",     desc:"Canada only"},
+                  {value:"paypal",       label:"💸 PayPal",          desc:"Global"},
+                  {value:"mobilemoney",  label:"📱 Mobile Money",    desc:"Africa"},
+                  {value:"bank",         label:"🏛️ Bank Transfer",   desc:"Global"},
+                ].map(m => (
+                  <button key={m.value} type="button"
+                    onClick={() => setPaymentInfo(p => ({...p, preferredMethod: m.value}))}
+                    className="p-3 rounded-xl text-left transition-all"
+                    style={{
+                      background: paymentInfo.preferredMethod === m.value ? "rgba(196,83,26,0.08)" : "#F6F1E9",
+                      border:     `1px solid ${paymentInfo.preferredMethod === m.value ? "#C4531A" : "#E8E2D9"}`,
+                    }}>
+                    <p className="text-sm font-dm-sans font-bold" style={{color:"#1A1714"}}>{m.label}</p>
+                    <p className="text-[10px] font-dm-sans" style={{color:"#8A8480"}}>{m.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* E-Transfer */}
+            {paymentInfo.preferredMethod === "etransfer" && (
+              <div>
+                <label className="block text-sm font-semibold font-syne mb-1.5" style={{color:"#1A1714"}}>E-Transfer Email</label>
+                <input className={inp} style={inpStyle}
+                  value={paymentInfo.etransferEmail}
+                  onChange={e => setPaymentInfo(p => ({...p, etransferEmail: e.target.value}))}
+                  placeholder="your@email.com"
+                  onFocus={e=>{e.target.style.borderColor="#C4531A"}} onBlur={e=>{e.target.style.borderColor="#D4CFC6"}} />
+              </div>
+            )}
+
+            {/* PayPal */}
+            {paymentInfo.preferredMethod === "paypal" && (
+              <div>
+                <label className="block text-sm font-semibold font-syne mb-1.5" style={{color:"#1A1714"}}>PayPal Email</label>
+                <input className={inp} style={inpStyle}
+                  value={paymentInfo.paypalEmail}
+                  onChange={e => setPaymentInfo(p => ({...p, paypalEmail: e.target.value}))}
+                  placeholder="your@paypal.com"
+                  onFocus={e=>{e.target.style.borderColor="#C4531A"}} onBlur={e=>{e.target.style.borderColor="#D4CFC6"}} />
+              </div>
+            )}
+
+            {/* Mobile Money */}
+            {paymentInfo.preferredMethod === "mobilemoney" && (
+              <div>
+                <label className="block text-sm font-semibold font-syne mb-1.5" style={{color:"#1A1714"}}>Mobile Money Number (MTN/Vodafone/Airtel)</label>
+                <input className={inp} style={inpStyle}
+                  value={paymentInfo.mobileMoneyNumber}
+                  onChange={e => setPaymentInfo(p => ({...p, mobileMoneyNumber: e.target.value}))}
+                  placeholder="+233 XX XXX XXXX"
+                  onFocus={e=>{e.target.style.borderColor="#C4531A"}} onBlur={e=>{e.target.style.borderColor="#D4CFC6"}} />
+              </div>
+            )}
+
+            {/* Bank */}
+            {paymentInfo.preferredMethod === "bank" && (
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-semibold font-syne mb-1.5" style={{color:"#1A1714"}}>Bank Name</label>
+                  <input className={inp} style={inpStyle}
+                    value={paymentInfo.bankName}
+                    onChange={e => setPaymentInfo(p => ({...p, bankName: e.target.value}))}
+                    placeholder="e.g. TD Bank, GTBank"
+                    onFocus={e=>{e.target.style.borderColor="#C4531A"}} onBlur={e=>{e.target.style.borderColor="#D4CFC6"}} />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold font-syne mb-1.5" style={{color:"#1A1714"}}>Account Number</label>
+                  <input className={inp} style={inpStyle}
+                    value={paymentInfo.bankAccount}
+                    onChange={e => setPaymentInfo(p => ({...p, bankAccount: e.target.value}))}
+                    placeholder="Account number"
+                    onFocus={e=>{e.target.style.borderColor="#C4531A"}} onBlur={e=>{e.target.style.borderColor="#D4CFC6"}} />
+                </div>
+              </div>
+            )}
+
+            <button onClick={savePaymentInfo} disabled={savingPayment}
+              className="mt-4 w-full py-3 rounded-xl text-white font-dm-sans font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+              style={{background:"#C4531A"}}>
+              {savingPayment
+                ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</>
+                : "Save Payment Info 💰"}
+            </button>
+
+            <p className="text-[10px] font-dm-sans mt-3 text-center" style={{color:"#8A8480"}}>
+              🔒 Your payment info is encrypted and only used by Planet Mall admin to send you earnings
+            </p>
+          </Section>
+
+          {/* Subscription */}
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-dm-sans font-semibold" style={{color:"#1A1714"}}>Manage your plan</p>
