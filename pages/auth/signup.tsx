@@ -43,6 +43,7 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading,  setLoading]  = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const signingUpRef = useRef(false); // prevents redirect during signup flow
 
   // Phone verification states
   const [phone,        setPhone]        = useState("");
@@ -70,9 +71,9 @@ export default function SignupPage() {
     return () => clearTimeout(t);
   }, [countdown]);
 
-  // Only redirect away if logged in AND not in the middle of signup (step 2 or 3)
+  // Only redirect away if logged in AND not in the middle of signup flow
   useEffect(() => {
-    if (isLoggedIn && step === 1) {
+    if (isLoggedIn && step === 1 && !signingUpRef.current) {
       router.replace("/");
     }
   }, [isLoggedIn, step]);
@@ -186,16 +187,19 @@ export default function SignupPage() {
     e.preventDefault();
     if (pwStrength < 2) { toast.error("Please choose a stronger password"); return; }
     setLoading(true);
+    signingUpRef.current = true; // block redirect
     try {
       await signUpWithEmail(email, password, name, role);
       toast.success("Account created!");
       if (role === "seller") {
-        setStep(3); // → phone verification
+        setStep(3);
       } else {
+        signingUpRef.current = false;
         toast.success("Welcome to Planet Mall 🎉");
         router.push("/explore");
       }
     } catch (err: unknown) {
+      signingUpRef.current = false;
       const msg = err instanceof Error ? err.message : "Signup failed";
       if (msg.includes("email-already-in-use")) {
         toast.error("An account with this email already exists");
@@ -210,16 +214,19 @@ export default function SignupPage() {
   // ── Google signup ─────────────────────────────────────────────
   async function handleGoogleSignup() {
     setGoogleLoading(true);
+    signingUpRef.current = true; // block redirect
     try {
       const user = await signInWithGoogle();
       await createUserDocument(user, role, user.displayName || "");
       toast.success("Account created with Google!");
       if (role === "seller") {
-        setStep(3); // → phone verification
+        setStep(3);
       } else {
+        signingUpRef.current = false;
         router.push("/explore");
       }
     } catch {
+      signingUpRef.current = false;
       toast.error("Google signup failed");
     } finally {
       setGoogleLoading(false);
