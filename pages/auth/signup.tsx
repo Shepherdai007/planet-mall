@@ -71,13 +71,6 @@ export default function SignupPage() {
     return () => clearTimeout(t);
   }, [countdown]);
 
-  // Only redirect away if logged in AND not in the middle of signup flow
-  useEffect(() => {
-    if (isLoggedIn && step === 1 && !signingUpRef.current) {
-      router.replace("/");
-    }
-  }, [isLoggedIn, step]);
-
   function handleRoleSelect(r: Role) {
     setRole(r);
     setStep(2);
