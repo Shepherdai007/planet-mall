@@ -195,10 +195,8 @@ export default function SignupPage() {
       const msg = err instanceof Error ? err.message : "Signup failed";
       if (msg.includes("email-already-in-use")) {
         toast.error("An account with this email already exists — use a different email");
-        alert("EMAIL ALREADY EXISTS — please use a different email");
       } else {
         toast.error(msg);
-        alert("Signup error: " + msg);
       }
     } finally {
       setLoading(false);
