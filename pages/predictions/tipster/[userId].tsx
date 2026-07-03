@@ -39,6 +39,7 @@ export default function TipsterProfilePage() {
   const [followLoading, setFollowLoading] = useState(false);
   const [tab,         setTab]         = useState<"tips"|"vip">("tips");
   const [likedIds,    setLikedIds]    = useState<Set<string>>(new Set());
+  const [lightboxImg, setLightboxImg] = useState<string>("");
 
   const isOwner = user?.uid === userId;
 
@@ -285,10 +286,12 @@ export default function TipsterProfilePage() {
                       {/* ── BETSLIP CARD ── */}
                       {(p as any).isSlip ? (
                         <>
-                          {/* Slip image */}
+                          {/* Slip image — click to fullscreen */}
                           {(p as any).imageUrl && (
                             <img src={(p as any).imageUrl} alt="Betslip"
-                              className="w-full rounded-xl mb-3 object-cover" style={{maxHeight:"280px"}} />
+                              className="w-full rounded-xl mb-3 object-cover cursor-pointer active:opacity-80"
+                              style={{maxHeight:"280px"}}
+                              onClick={() => setLightboxImg((p as any).imageUrl)} />
                           )}
 
                           {/* Bookmaker + odds */}
@@ -364,9 +367,12 @@ export default function TipsterProfilePage() {
                             </div>
                           </div>
 
-                          {/* Image if any */}
+                          {/* Image if any — click to fullscreen */}
                           {(p as any).imageUrl && (
-                            <img src={(p as any).imageUrl} alt="" className="w-full rounded-xl mb-3 object-cover" style={{maxHeight:"200px"}} />
+                            <img src={(p as any).imageUrl} alt=""
+                              className="w-full rounded-xl mb-3 object-cover cursor-pointer active:opacity-80"
+                              style={{maxHeight:"200px"}}
+                              onClick={() => setLightboxImg((p as any).imageUrl)} />
                           )}
 
                           {p.analysis && <p className="text-xs font-dm-sans mb-3" style={{color:"#8A8480"}}>{p.analysis}</p>}
@@ -500,6 +506,28 @@ export default function TipsterProfilePage() {
             )}
           </div>
         </div>
+        {/* ── Lightbox ─────────────────────────────────────── */}
+        {lightboxImg && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{background:"rgba(0,0,0,0.95)"}}
+            onClick={() => setLightboxImg("")}>
+            <div className="relative w-full max-w-2xl">
+              <img src={lightboxImg} alt="Betslip fullscreen"
+                className="w-full rounded-2xl object-contain"
+                style={{maxHeight:"90vh"}} />
+              <button
+                onClick={() => setLightboxImg("")}
+                className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm"
+                style={{background:"rgba(0,0,0,0.7)",color:"#fff"}}>
+                ✕
+              </button>
+              <p className="text-center text-xs font-dm-sans mt-3" style={{color:"#8A8480"}}>
+                Tap anywhere to close
+              </p>
+            </div>
+          </div>
+        )}
       </Layout>
     </>
   );
