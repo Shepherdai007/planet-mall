@@ -57,22 +57,25 @@ export default function SignupPage() {
 
   const pwStrength = passwordStrength(password);
 
-  if (isLoggedIn) { router.replace("/"); return null; }
+  // Pre-select role from URL param
+  useEffect(() => {
+    const urlRole = router.query.role as Role | undefined;
+    if (urlRole && urlRole !== role && step === 1) setRole(urlRole);
+  }, [router.query.role]);
 
-  const urlRole = router.query.role as Role | undefined;
-  if (urlRole && urlRole !== role && step === 1) setRole(urlRole);
-
-  function handleRoleSelect(r: Role) {
-    setRole(r);
-    setStep(2);
-  }
-
-  // ── Countdown timer for resend ────────────────────────────────
+  // Countdown timer for resend
   useEffect(() => {
     if (countdown <= 0) return;
     const t = setTimeout(() => setCountdown(c => c - 1), 1000);
     return () => clearTimeout(t);
   }, [countdown]);
+
+  if (isLoggedIn) { router.replace("/"); return null; }
+
+  function handleRoleSelect(r: Role) {
+    setRole(r);
+    setStep(2);
+  }
 
   // ── Setup reCAPTCHA ───────────────────────────────────────────
   function setupRecaptcha() {
