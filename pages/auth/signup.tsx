@@ -57,8 +57,6 @@ export default function SignupPage() {
 
   const pwStrength = passwordStrength(password);
 
-  const pwStrength = passwordStrength(password);
-
   // Pre-select role from URL param
   useEffect(() => {
     const urlRole = router.query.role as Role | undefined;
