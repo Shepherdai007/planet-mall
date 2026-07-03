@@ -5,11 +5,12 @@
 
 import Head           from "next/head";
 import { useRouter }  from "next/router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import toast           from "react-hot-toast";
 import Layout          from "@/components/Layout";
 import { useAuth }     from "@/context/AuthContext";
 import { getTipsterProfile, createTipsterProfile, updateTipsterProfile } from "@/services/predictionService";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import type { Tipster } from "@/services/predictionService";
 
 export default function TipsterProfilePage() {
@@ -18,6 +19,10 @@ export default function TipsterProfilePage() {
   const [saving,    setSaving]    = useState(false);
   const [checking,  setChecking]  = useState(true);
   const [existing,  setExisting]  = useState<Tipster | null>(null);
+  const [photoPreview, setPhotoPreview] = useState("");
+  const [photoFile,    setPhotoFile]    = useState<File | null>(null);
+  const [uploading,    setUploading]    = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
     name:      "",
@@ -36,6 +41,7 @@ export default function TipsterProfilePage() {
     getTipsterProfile(user.uid).then(t => {
       if (t) {
         setExisting(t);
+        setPhotoPreview(t.photo || "");
         setForm({
           name:      t.name,
           bio:       t.bio || "",
@@ -65,13 +71,24 @@ export default function TipsterProfilePage() {
 
     setSaving(true);
     try {
+      // Upload new photo if selected
+      let photoURL = existing?.photo || userDoc?.photoURL || "";
+      if (photoFile) {
+        setUploading(true);
+        const storage = getStorage();
+        const sRef    = storageRef(storage, `tipsters/${user.uid}/${Date.now()}_${photoFile.name}`);
+        await uploadBytes(sRef, photoFile);
+        photoURL = await getDownloadURL(sRef);
+        setUploading(false);
+      }
+
       if (existing) {
-        await updateTipsterProfile(existing.id!, { ...form });
+        await updateTipsterProfile(existing.id!, { ...form, photo: photoURL });
         toast.success("Profile updated! ✅");
       } else {
         await createTipsterProfile({
-          userId:    user.uid,
-          photo:     userDoc?.photoURL || "",
+          userId: user.uid,
+          photo:  photoURL,
           ...form,
         });
         toast.success("Tipster profile created! 🎉");
@@ -82,6 +99,7 @@ export default function TipsterProfilePage() {
       toast.error("Failed to save profile");
     } finally {
       setSaving(false);
+      setUploading(false);
     }
   }
 
@@ -124,6 +142,36 @@ export default function TipsterProfilePage() {
 
               <div className="p-5 rounded-2xl space-y-3" style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)"}}>
                 <h2 className="font-syne font-bold text-base text-paper">Basic info</h2>
+
+                {/* Photo upload */}
+                <input ref={fileRef} type="file" accept="image/*" className="hidden"
+                  onChange={e => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    setPhotoFile(f);
+                    setPhotoPreview(URL.createObjectURL(f));
+                  }} />
+                <div className="flex items-center gap-4">
+                  <div
+                    className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center text-2xl font-bold cursor-pointer"
+                    style={{background:"rgba(196,83,26,0.15)",color:"#C4531A",border:"2px dashed rgba(196,83,26,0.4)"}}
+                    onClick={() => fileRef.current?.click()}>
+                    {photoPreview
+                      ? <img src={photoPreview} alt="" className="w-full h-full object-cover" />
+                      : "📷"}
+                  </div>
+                  <div className="flex-1">
+                    <button type="button" onClick={() => fileRef.current?.click()}
+                      className="w-full py-2 rounded-xl text-xs font-dm-sans font-semibold"
+                      style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",color:"#8A8480"}}>
+                      {photoPreview ? "Change Profile Photo" : "Upload Profile Photo"}
+                    </button>
+                    <p className="text-[10px] font-dm-sans mt-1" style={{color:"#8A8480"}}>
+                      This photo shows on your tipster profile & all predictions
+                    </p>
+                  </div>
+                </div>
+
                 <input className={inp} style={inpStyle} value={form.name} onChange={e=>up("name",e.target.value)} placeholder="Tipster name / channel name *" />
                 <textarea className={inp} style={inpStyle} rows={3} value={form.bio} onChange={e=>up("bio",e.target.value)}
                   placeholder="Tell people about yourself — your win rate, specialties, how long you've been tipping..." />
@@ -163,10 +211,12 @@ export default function TipsterProfilePage() {
                 </div>
               </div>
 
-              <button type="submit" disabled={saving}
+              <button type="submit" disabled={saving || uploading}
                 className="w-full py-4 rounded-xl text-white font-dm-sans font-bold text-base disabled:opacity-50 flex items-center justify-center gap-2"
                 style={{background:"#C4531A"}}>
-                {saving ? <><span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</> : existing ? "Save changes →" : "Create profile →"}
+                {uploading ? <><span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />Uploading photo...</>
+                 : saving  ? <><span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</>
+                 : existing ? "Save changes →" : "Create profile →"}
               </button>
             </form>
           </div>
