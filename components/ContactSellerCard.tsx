@@ -12,10 +12,11 @@ interface Props {
 }
 
 function formatForWhatsApp(num: string): string {
+  // If it's already a full link (e.g. a WhatsApp group invite), use it as-is
+  if (num.startsWith("http")) return num;
   // Strip everything except digits and leading +
   return num.replace(/[^\d+]/g, "").replace(/^\+/, "");
 }
-
 export default function ContactSellerCard({ phone, whatsapp }: Props) {
   const [revealed, setRevealed] = useState(false);
 
@@ -40,7 +41,7 @@ export default function ContactSellerCard({ phone, whatsapp }: Props) {
       )}
       {whatsapp && (
         <a
-          href={`https://wa.me/${formatForWhatsApp(whatsapp)}`}
+          href={whatsapp.startsWith("http") ? whatsapp : `https://wa.me/${formatForWhatsApp(whatsapp)}`}
           target="_blank"
           rel="noopener noreferrer"
           className="w-full py-3 rounded-xl font-dm-sans font-bold text-sm text-center text-white flex items-center justify-center gap-2"
