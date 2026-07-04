@@ -1,7 +1,7 @@
 // components/ProtectedRoute.tsx
 // ─── ROUTE GUARD ────────────────────────────────────────────────
 // Wraps any page that requires authentication.
-// Optionally restrict to a specific role.
+// Optionally restrict to a specific role, and/or require phone verification.
 
 "use client";
 
@@ -10,11 +10,12 @@ import { useRouter }  from "next/router";
 import { useAuth }    from "@/context/AuthContext";
 
 interface Props {
-  children:     React.ReactNode;
-  requireRole?: "buyer" | "seller" | "admin";
+  children:            React.ReactNode;
+  requireRole?:        "buyer" | "seller" | "admin";
+  requirePhoneVerified?: boolean;
 }
 
-export default function ProtectedRoute({ children, requireRole }: Props) {
+export default function ProtectedRoute({ children, requireRole, requirePhoneVerified }: Props) {
   const { user, userDoc, loading } = useAuth();
   const router = useRouter();
 
@@ -28,8 +29,14 @@ export default function ProtectedRoute({ children, requireRole }: Props) {
 
     if (requireRole && userDoc?.role !== requireRole) {
       router.push("/");
+      return;
     }
-  }, [user, userDoc, loading, requireRole, router]);
+
+    if (requirePhoneVerified && !userDoc?.phoneVerified) {
+      router.push("/auth/verify-phone?redirect=" + router.pathname);
+      return;
+    }
+  }, [user, userDoc, loading, requireRole, requirePhoneVerified, router]);
 
   // Show nothing while loading or redirecting
   if (loading || !user) {
@@ -41,6 +48,7 @@ export default function ProtectedRoute({ children, requireRole }: Props) {
   }
 
   if (requireRole && userDoc?.role !== requireRole) return null;
+  if (requirePhoneVerified && !userDoc?.phoneVerified) return null;
 
   return <>{children}</>;
 }

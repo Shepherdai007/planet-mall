@@ -46,6 +46,13 @@ export default function PostClassifiedPage() {
     return null;
   }
 
+  // Require phone verification before anyone can post a listing —
+  // same anti-fraud gate used for sellers creating a shop.
+  if (!loading && isLoggedIn && !userDoc?.phoneVerified) {
+    router.push("/auth/verify-phone?redirect=/classifieds/post");
+    return null;
+  }
+
   function up(field: string, value: any) {
     setForm(f => ({...f, [field]: value}));
   }

@@ -52,7 +52,7 @@ const EMPTY: WizardData = {
 
 export default function CreateShopPage() {
   return (
-    <ProtectedRoute requireRole="seller">
+    <ProtectedRoute requireRole="seller" requirePhoneVerified>
       <CreateShopWizard />
     </ProtectedRoute>
   );

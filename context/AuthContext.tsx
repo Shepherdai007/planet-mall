@@ -24,6 +24,7 @@ export interface UserDoc {
   photoURL:    string;
   role:        "buyer" | "seller" | "admin";
   phone:       string;
+  phoneVerified?: boolean;
   city:        string;
   country:     string;
   createdAt:   unknown; // Firestore Timestamp

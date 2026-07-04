@@ -10,6 +10,7 @@ import { useAuth }    from "@/context/AuthContext";
 export default function VerifyPhonePage() {
   const router = useRouter();
   const { user, isLoggedIn, loading } = useAuth();
+  const { redirect } = router.query;
 
   const [phone,      setPhone]      = useState("");
   const [otp,        setOtp]        = useState(["","","","","",""]);
@@ -73,7 +74,7 @@ export default function VerifyPhonePage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Verification failed");
       toast.success("Phone verified! ✅ Welcome to Planet Mall 🎉");
-      router.push("/seller/create-shop");
+      router.push((redirect as string) || "/seller/create-shop");
     } catch (err: any) {
       toast.error(err.message || "Wrong code. Try again.");
     } finally {
@@ -104,7 +105,7 @@ export default function VerifyPhonePage() {
               style={{background:"rgba(196,83,26,0.1)"}}>📱</div>
             <h1 className="font-syne font-bold text-2xl text-paper mb-2">Verify your phone</h1>
             <p className="text-sm font-dm-sans" style={{color:"#8A8480"}}>
-              Required for sellers to protect buyers and unlock your full selling limit.
+              Required to post listings or open a shop — this protects buyers and keeps Planet Mall scam-free.
             </p>
           </div>
 
@@ -127,11 +128,6 @@ export default function VerifyPhonePage() {
                 {sending
                   ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Sending...</>
                   : "Send verification code 📱"}
-              </button>
-
-              <button onClick={() => router.push("/seller/create-shop")}
-                className="w-full py-3 text-sm font-dm-sans text-center" style={{color:"#8A8480"}}>
-                Skip for now (limits apply)
               </button>
             </div>
           ) : (
@@ -176,11 +172,6 @@ export default function VerifyPhonePage() {
                   </button>
                 )}
               </div>
-
-              <button onClick={() => router.push("/seller/create-shop")}
-                className="w-full py-3 text-sm font-dm-sans text-center" style={{color:"#8A8480"}}>
-                Skip for now (limits apply)
-              </button>
             </div>
           )}
         </div>
