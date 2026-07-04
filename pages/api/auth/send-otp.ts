@@ -2,9 +2,9 @@
 // ─── TWILIO VERIFY — SEND OTP ─────────────────────────────────────
 
 import type { NextApiRequest, NextApiResponse } from "next";
-import twilio from "twilio";
+import Twilio from "twilio";
 
-const client = twilio(
+const client = Twilio(
   process.env.TWILIO_ACCOUNT_SID!,
   process.env.TWILIO_AUTH_TOKEN!
 );
