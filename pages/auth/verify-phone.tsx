@@ -1,33 +1,23 @@
 // pages/auth/verify-phone.tsx
-// ─── PHONE VERIFICATION PAGE (SELLERS ONLY) ──────────────────────
+// ─── PHONE VERIFICATION — TWILIO VERIFY ──────────────────────────
 
 import Head          from "next/head";
 import { useRouter } from "next/router";
 import { useState, useEffect, useRef } from "react";
 import toast          from "react-hot-toast";
 import { useAuth }    from "@/context/AuthContext";
-import { auth, db }   from "@/lib/firebase";
-import {
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
-  PhoneAuthProvider,
-  signInWithCredential,
-} from "firebase/auth";
-import { doc, updateDoc, getDocs, query, collection, where } from "firebase/firestore";
 
 export default function VerifyPhonePage() {
   const router = useRouter();
   const { user, isLoggedIn, loading } = useAuth();
 
-  const [phone,           setPhone]           = useState("");
-  const [otp,             setOtp]             = useState(["","","","","",""]);
-  const [verificationId,  setVerificationId]  = useState("");
-  const [otpSent,         setOtpSent]         = useState(false);
-  const [sendingOtp,      setSendingOtp]      = useState(false);
-  const [verifying,       setVerifying]       = useState(false);
-  const [countdown,       setCountdown]       = useState(0);
-  const recaptchaRef = useRef<RecaptchaVerifier | null>(null);
-  const otpRefs      = useRef<(HTMLInputElement | null)[]>([]);
+  const [phone,      setPhone]      = useState("");
+  const [otp,        setOtp]        = useState(["","","","","",""]);
+  const [otpSent,    setOtpSent]    = useState(false);
+  const [sending,    setSending]    = useState(false);
+  const [verifying,  setVerifying]  = useState(false);
+  const [countdown,  setCountdown]  = useState(0);
+  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
     if (!loading && !isLoggedIn) router.replace("/auth/signup?role=seller");
@@ -39,60 +29,24 @@ export default function VerifyPhonePage() {
     return () => clearTimeout(t);
   }, [countdown]);
 
-  // Init reCAPTCHA on mount
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    // Clean up any existing reCAPTCHA first
-    const container = document.getElementById("recaptcha-container");
-    if (container) container.innerHTML = "";
-    try {
-      recaptchaRef.current = new RecaptchaVerifier(auth, "recaptcha-container", {
-        size: "invisible",
-      });
-    } catch (e) {
-      console.error("reCAPTCHA init error:", e);
-    }
-    return () => {
-      // Cleanup on unmount
-      recaptchaRef.current = null;
-    };
-  }, []);
-
   async function handleSendOtp() {
-    if (!phone || phone.length < 10) { toast.error("Enter a valid phone number"); return; }
-
-    // Check phone not already used
-    const existing = await getDocs(query(collection(db, "users"), where("phone", "==", phone)));
-    if (!existing.empty) {
-      toast.error("This phone number is already registered");
-      return;
-    }
-
-    setSendingOtp(true);
+    if (!phone || phone.length < 10) { toast.error("Enter a valid phone number with country code"); return; }
+    setSending(true);
     try {
-      if (!recaptchaRef.current) {
-        recaptchaRef.current = new RecaptchaVerifier(auth, "recaptcha-container", {
-          size: "invisible",
-        });
-      }
-      const confirmationResult = await signInWithPhoneNumber(auth, phone, recaptchaRef.current);
-      (window as any).confirmationResult = confirmationResult;
-      setVerificationId(confirmationResult.verificationId);
+      const res = await fetch("/api/auth/send-otp", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ phone }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to send code");
       setOtpSent(true);
       setCountdown(60);
       toast.success(`Code sent to ${phone} 📱`);
     } catch (err: any) {
-      console.error(err);
-      if (err.code === "auth/invalid-phone-number") {
-        toast.error("Invalid number — include country code e.g. +1 416...");
-      } else if (err.code === "auth/too-many-requests") {
-        toast.error("Too many attempts. Try again later.");
-      } else {
-        toast.error("Failed to send code: " + err.message);
-      }
-      recaptchaRef.current = null;
+      toast.error(err.message || "Failed to send code");
     } finally {
-      setSendingOtp(false);
+      setSending(false);
     }
   }
 
@@ -109,36 +63,19 @@ export default function VerifyPhonePage() {
     const code = otp.join("");
     if (code.length !== 6) { toast.error("Enter all 6 digits"); return; }
     if (!user) return;
-
     setVerifying(true);
     try {
-      const confirmationResult = (window as any).confirmationResult;
-      if (!confirmationResult) { toast.error("Session expired. Try again."); setVerifying(false); return; }
-      
-      // Confirm the code — this verifies the OTP is correct
-      // We catch the credential-already-in-use error which means the code WAS correct
-      try {
-        await confirmationResult.confirm(code);
-      } catch (confirmErr: any) {
-        // If error is NOT about wrong code, the phone was verified — just linked to different account
-        if (confirmErr.code === "auth/invalid-verification-code") {
-          toast.error("Wrong code. Check your SMS.");
-          setVerifying(false);
-          return;
-        }
-        // Any other error (credential-already-in-use etc) means code was correct
-      }
-
-      // Save phone to Firestore
-      await updateDoc(doc(db, "users", user.uid), { phone, phoneVerified: true });
-      try {
-        await updateDoc(doc(db, "trustProfiles", user.uid), { isPhoneVerified: true });
-      } catch {}
-      
+      const res = await fetch("/api/auth/check-otp", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ phone, code, userId: user.uid }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Verification failed");
       toast.success("Phone verified! ✅ Welcome to Planet Mall 🎉");
       router.push("/seller/create-shop");
     } catch (err: any) {
-      toast.error("Verification failed: " + err.message);
+      toast.error(err.message || "Wrong code. Try again.");
     } finally {
       setVerifying(false);
     }
@@ -185,12 +122,9 @@ export default function VerifyPhonePage() {
                 </p>
               </div>
 
-              {/* Invisible reCAPTCHA */}
-              <div id="recaptcha-container" style={{display:"none"}} />
-
-              <button onClick={handleSendOtp} disabled={sendingOtp || !phone}
+              <button onClick={handleSendOtp} disabled={sending || !phone}
                 className="w-full py-3.5 bg-rust text-white font-dm-sans font-semibold rounded-xl disabled:opacity-50 flex items-center justify-center gap-2">
-                {sendingOtp
+                {sending
                   ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Sending...</>
                   : "Send verification code 📱"}
               </button>
@@ -236,7 +170,7 @@ export default function VerifyPhonePage() {
                 {countdown > 0 ? (
                   <p className="text-xs font-dm-sans" style={{color:"#8A8480"}}>Resend in {countdown}s</p>
                 ) : (
-                  <button onClick={() => { setOtpSent(false); setOtp(["","","","","",""]); recaptchaRef.current = null; }}
+                  <button onClick={() => { setOtpSent(false); setOtp(["","","","","",""]); }}
                     className="text-xs font-dm-sans" style={{color:"#C4531A"}}>
                     Resend code
                   </button>
