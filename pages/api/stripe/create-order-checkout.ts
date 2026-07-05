@@ -1,7 +1,8 @@
 // pages/api/stripe/create-order-checkout.ts
 // ─── STRIPE CHECKOUT FOR MARKETPLACE ORDERS ──────────────────────
 // Creates escrow order in Firestore then redirects to Stripe.
-// Money held until buyer confirms delivery.
+// Money held until buyer confirms delivery, then seller is paid out
+// automatically via Stripe Connect transfer (see release-payout.ts).
 
 import type { NextApiRequest, NextApiResponse } from "next";
 import { stripe } from "@/lib/stripe";
@@ -24,6 +25,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: "Missing required fields" });
   }
 
+  // ── Safety check: seller must have finished Stripe Connect ──────
+  // Explore already hides unconnected shops, but a buyer could still
+  // hit this endpoint directly via an old link — block it here too.
+  const shopSnap = await adminDb.collection("shops")
+    .where("ownerId", "==", sellerId).limit(1).get();
+  if (shopSnap.empty) {
+    return res.status(404).json({ error: "Seller shop not found" });
+  }
+  const shop = shopSnap.docs[0].data();
+  if (!shop.payoutsEnabled || !shop.stripeAccountId) {
+    return res.status(403).json({ error: "This seller hasn't finished setting up payouts yet. Please check back soon." });
+  }
+  const sellerStripeAccountId = shop.stripeAccountId as string;
+
   const totalAmount  = Math.round(unitPrice * quantity * 100) / 100;
   const platformFee  = Math.round(totalAmount * PLATFORM_FEE_RATE * 100) / 100;
   const sellerPayout = Math.round((totalAmount - platformFee) * 100) / 100;
@@ -41,6 +56,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       quantity, unitPrice, totalAmount,
       currency: currency || "CAD",
       platformFee, sellerPayout,
+      sellerStripeAccountId,     // needed later to send the seller their cut
+      payoutStatus:    "pending", // becomes "paid" once transfer completes
       escrowStatus:    "pending_payment",
       stripeSessionId: "",
       shippingAddress: shippingAddress || "",
