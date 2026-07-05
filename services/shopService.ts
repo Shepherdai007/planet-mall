@@ -39,11 +39,17 @@ export interface ShopData {
   reviewCount:   number;
   builtByAI:     boolean;
   currency:      "CAD" | "USD" | "EUR" | "GBP";
+  // ── Stripe Connect (seller payouts) ──────────────────────────
+  stripeAccountId?:  string;   // Stripe Connect Express account ID (acct_...)
+  payoutsEnabled?:   boolean;  // true once seller finishes Stripe onboarding
+  detailsSubmitted?: boolean;  // true once seller submitted required info to Stripe
 }
 
 export async function createShop(data: Omit<ShopData, "shopId">): Promise<string> {
   const docRef = await addDoc(collection(db, "shops"), {
     ...data,
+    payoutsEnabled:   false,
+    detailsSubmitted: false,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });

@@ -55,7 +55,12 @@ export default function ExplorePage() {
           if (!sq.empty) shopMap[id] = sq.docs[0].data() as ShopData;
         }));
         setShops(shopMap);
-        setProducts(prods);
+
+        // Hide products whose shop hasn't finished connecting payouts yet —
+        // buyers should never see (or try to buy from) a store that can't
+        // actually receive payment.
+        const visibleProds = prods.filter(p => shopMap[p.shopId]?.payoutsEnabled === true);
+        setProducts(visibleProds);
       } catch (e) {
         console.error(e);
       } finally {

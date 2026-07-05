@@ -166,6 +166,27 @@ function Dashboard() {
             </div>
           </div>
 
+          {/* ── Stripe Connect warning banner ────────────── */}
+          {!shop?.payoutsEnabled && (
+            <Link href="/seller/payouts"
+              className="flex items-center gap-3 p-4 rounded-2xl mb-8 transition-all hover:opacity-90"
+              style={{background:"#FDECEC",border:"2px solid #D92D20"}}>
+              <span className="text-2xl flex-shrink-0">🔴</span>
+              <div className="flex-1">
+                <p className="font-syne font-bold text-sm" style={{color:"#D92D20"}}>
+                  Your store is NOT live — buyers can't find or buy from you yet
+                </p>
+                <p className="text-xs font-dm-sans mt-0.5" style={{color:"#7A1F17"}}>
+                  Connect your bank account to start accepting payments. Takes about 5 minutes.
+                </p>
+              </div>
+              <span className="px-4 py-2 rounded-xl text-xs font-dm-sans font-bold text-white flex-shrink-0"
+                style={{background:"#D92D20"}}>
+                Connect now →
+              </span>
+            </Link>
+          )}
+
           {/* ── Stats ──────────────────────────────────── */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             {[
