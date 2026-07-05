@@ -177,7 +177,7 @@ function Dashboard() {
                   Your store is NOT live — buyers can't find or buy from you yet
                 </p>
                 <p className="text-xs font-dm-sans mt-0.5" style={{color:"#7A1F17"}}>
-                  Connect your bank account to start accepting payments. Takes about 5 minutes.
+                  Connect your bank account to start accepting payments. Takes about 5 minutes. 🔒 Secured by Stripe — we never see your bank details.
                 </p>
               </div>
               <span className="px-4 py-2 rounded-xl text-xs font-dm-sans font-bold text-white flex-shrink-0"

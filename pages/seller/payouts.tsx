@@ -141,6 +141,9 @@ function Payouts() {
                   ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Redirecting to Stripe...</>
                   : "Connect payout account now →"}
               </button>
+              <p className="text-xs font-dm-sans text-center mt-3 flex items-center justify-center gap-1.5" style={{color:"#7A1F17"}}>
+                🔒 Bank-level encryption · Secured by Stripe · Planet Mall never sees your bank details
+              </p>
             </div>
           )}
 
@@ -148,7 +151,7 @@ function Payouts() {
           <div className="p-5 rounded-2xl" style={{background:"#fff",border:"1px solid #E8E2D9"}}>
             <p className="font-syne font-bold text-sm mb-2">How payouts work</p>
             <ul className="space-y-1.5 text-sm font-dm-sans" style={{color:"#8A8480"}}>
-              <li>• You keep 85% of every sale — Planet Mall's 15% fee is taken automatically</li>
+              <li>• You keep 90% of every sale — Planet Mall's 10% fee is taken automatically</li>
               <li>• Money goes straight to your bank account — no manual transfers, ever</li>
               <li>• Stripe verifies your identity to keep your money safe</li>
               <li>• Your store stays hidden from buyers until this is complete</li>
