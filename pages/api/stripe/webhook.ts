@@ -183,6 +183,24 @@ export async function checkAndRefundOverdueOrders(): Promise<void> {
     const order    = docSnap.data();
     const deadline = order.shipByDeadline?.toDate?.() || new Date(order.shipByDeadline);
     if (now > deadline) {
+      // Actually refund the buyer's card via Stripe — this was missing
+      // before, meaning orders were marked "refunded" in Firestore
+      // without the buyer ever getting their money back.
+      try {
+        if (order.stripePaymentIntent) {
+          await stripe.refunds.create({
+            payment_intent: order.stripePaymentIntent,
+            reason: "requested_by_customer",
+          });
+        } else {
+          console.error(`No stripePaymentIntent on order ${docSnap.id} — cannot auto-refund via Stripe.`);
+          continue; // skip marking as refunded if we can't actually refund
+        }
+      } catch (err: any) {
+        console.error(`Stripe refund failed for order ${docSnap.id}:`, err.message);
+        continue; // don't mark as refunded if the Stripe call failed
+      }
+
       await docSnap.ref.update({
         escrowStatus: "refunded",
         adminNote:    "Auto-refunded: seller did not ship within 48 hours",
