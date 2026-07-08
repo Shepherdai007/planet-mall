@@ -7,7 +7,7 @@ import { useRouter }  from "next/router";
 import { useEffect, useState } from "react";
 import Layout         from "@/components/Layout";
 import { useAuth }    from "@/context/AuthContext";
-import { getClassified, getClassifieds, markAsSold } from "@/services/classifiedService";
+import { getClassified, getClassifieds, markAsSold, getVinLookupUrl, VEHICLE_CATEGORY, REAL_ESTATE_CATEGORY } from "@/services/classifiedService";
 import { saveListing, unsaveListing, listenSavedIds } from "@/services/favoritesService";
 import { getSellerRatingSummary, getSellerReviews, submitSellerRating, hasUserRatedSeller } from "@/services/sellerRatingService";
 import { formatCurrency, timeAgo }   from "@/lib/helpers";
@@ -16,6 +16,7 @@ import ReportButton   from "@/components/ReportButton";
 import ShareButton    from "@/components/ShareButton";
 import ContactSellerCard from "@/components/ContactSellerCard";
 import BuyerProtectionBadge from "@/components/BuyerProtectionBadge";
+import ListingMap      from "@/components/ListingMap";
 import toast          from "react-hot-toast";
 import type { Classified } from "@/services/classifiedService";
 
@@ -23,6 +24,67 @@ const CONDITION_LABELS: Record<string,string> = {
   new:"New", like_new:"Like New", good:"Good",
   fair:"Fair", parts_only:"Parts Only", na:"N/A",
 };
+
+// ── Kijiji-style spec strip for Cars & Vehicles ────────────────────
+function VehicleSpecs({ v }: { v: NonNullable<Classified["vehicleDetails"]> }) {
+  const specs = [
+    v.year || v.make || v.model ? { icon: "🚘", label: [v.year, v.make, v.model].filter(Boolean).join(" ") } : null,
+    v.mileageKm ? { icon: "🛣️", label: `${v.mileageKm.toLocaleString()} km` } : null,
+    v.transmission ? { icon: "⚙️", label: v.transmission } : null,
+    v.driveType ? { icon: "🧭", label: v.driveType } : null,
+    v.fuelType ? { icon: "⛽", label: v.fuelType } : null,
+    v.exteriorColor ? { icon: "🎨", label: v.exteriorColor } : null,
+  ].filter(Boolean) as { icon: string; label: string }[];
+
+  if (specs.length === 0 && !v.vin) return null;
+
+  return (
+    <div className="p-6 rounded-2xl" style={{background:"#fff",border:"1px solid #E8E2D9"}}>
+      <h2 className="font-syne font-bold text-lg mb-4" style={{color:"#1A1714"}}>Vehicle details</h2>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
+        {specs.map((s, i) => (
+          <div key={i} className="flex items-center gap-2 px-3 py-2.5 rounded-xl" style={{background:"#F6F1E9"}}>
+            <span className="text-lg">{s.icon}</span>
+            <span className="font-dm-sans text-sm font-medium truncate" style={{color:"#1A1714"}}>{s.label}</span>
+          </div>
+        ))}
+      </div>
+      {v.vin && (
+        <a href={getVinLookupUrl()} target="_blank" rel="noopener noreferrer"
+          className="text-xs font-dm-sans font-semibold inline-flex items-center gap-1" style={{color:"#C4531A"}}>
+          🔎 VIN: {v.vin} — run a free history check ↗
+        </a>
+      )}
+    </div>
+  );
+}
+
+// ── Kijiji-style spec strip for Real Estate ─────────────────────────
+function RealEstateSpecs({ r }: { r: NonNullable<Classified["realEstateDetails"]> }) {
+  const specs = [
+    r.listingType ? { icon: "🏷️", label: r.listingType } : null,
+    r.propertyType ? { icon: "🏠", label: r.propertyType } : null,
+    r.bedrooms ? { icon: "🛏️", label: `${r.bedrooms} bed${r.bedrooms !== 1 ? "s" : ""}` } : null,
+    r.bathrooms ? { icon: "🛁", label: `${r.bathrooms} bath${r.bathrooms !== 1 ? "s" : ""}` } : null,
+    r.sqft ? { icon: "📐", label: `${r.sqft.toLocaleString()} sq ft` } : null,
+  ].filter(Boolean) as { icon: string; label: string }[];
+
+  if (specs.length === 0) return null;
+
+  return (
+    <div className="p-6 rounded-2xl" style={{background:"#fff",border:"1px solid #E8E2D9"}}>
+      <h2 className="font-syne font-bold text-lg mb-4" style={{color:"#1A1714"}}>Property details</h2>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {specs.map((s, i) => (
+          <div key={i} className="flex items-center gap-2 px-3 py-2.5 rounded-xl" style={{background:"#F6F1E9"}}>
+            <span className="text-lg">{s.icon}</span>
+            <span className="font-dm-sans text-sm font-medium truncate" style={{color:"#1A1714"}}>{s.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function ClassifiedDetailPage({ ogData }: { ogData?: any }) {
   const router = useRouter();
@@ -317,6 +379,23 @@ export default function ClassifiedDetailPage({ ogData }: { ogData?: any }) {
                     <ReportButton type="product" targetId={listing.id!} targetName={listing.title} />
                   </div>
                 </div>
+
+                {/* Category-specific spec strips — Kijiji-style icon rows */}
+                {listing.category === VEHICLE_CATEGORY && listing.vehicleDetails && (
+                  <VehicleSpecs v={listing.vehicleDetails} />
+                )}
+                {listing.category === REAL_ESTATE_CATEGORY && listing.realEstateDetails && (
+                  <RealEstateSpecs r={listing.realEstateDetails} />
+                )}
+
+                {/* Map pin for Real Estate listings */}
+                {listing.category === REAL_ESTATE_CATEGORY && listing.realEstateDetails?.lat && listing.realEstateDetails?.lng && (
+                  <ListingMap
+                    lat={listing.realEstateDetails.lat}
+                    lng={listing.realEstateDetails.lng}
+                    address={listing.realEstateDetails.address}
+                  />
+                )}
               </div>
 
               <div className="space-y-4">

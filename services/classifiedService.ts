@@ -12,6 +12,30 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
+// ── Category-specific detail types ────────────────────────────────
+export interface VehicleDetails {
+  year?:          number;
+  make?:          string;
+  model?:         string;
+  mileageKm?:     number;
+  transmission?:  "Automatic" | "Manual" | "";
+  driveType?:     "FWD" | "RWD" | "AWD" | "";
+  fuelType?:      "Gas" | "Hybrid" | "Electric" | "Diesel" | "";
+  exteriorColor?: string;
+  vin?:           string;
+}
+
+export interface RealEstateDetails {
+  listingType?:  "For Sale" | "For Rent" | "";
+  propertyType?: "House" | "Condo" | "Apartment" | "Room" | "Townhouse" | "Land" | "Commercial" | "";
+  bedrooms?:     number;
+  bathrooms?:    number;
+  sqft?:         number;
+  address?:      string;   // full civic address, used for the map pin
+  lat?:          number;
+  lng?:          number;
+}
+
 export interface Classified {
   id?:          string;
   sellerId:     string;
@@ -40,6 +64,8 @@ export interface Classified {
   tags:         string[];
   createdAt:    unknown;
   expiresAt:    unknown;     // listings expire after 30 days
+  vehicleDetails?:    VehicleDetails;    // present when category === "Cars & Vehicles"
+  realEstateDetails?: RealEstateDetails; // present when category === "Real Estate"
 }
 
 export const CLASSIFIED_CATEGORIES = {
@@ -63,6 +89,24 @@ export const PROVINCES = [
   "Newfoundland", "Nova Scotia", "Ontario", "PEI",
   "Quebec", "Saskatchewan", "Other"
 ];
+
+// ── Category-specific option lists (used by post form + display) ──
+export const VEHICLE_CATEGORY     = "Cars & Vehicles";
+export const REAL_ESTATE_CATEGORY = "Real Estate";
+
+export const TRANSMISSION_OPTIONS  = ["Automatic", "Manual"] as const;
+export const DRIVE_TYPE_OPTIONS    = ["FWD", "RWD", "AWD"] as const;
+export const FUEL_TYPE_OPTIONS     = ["Gas", "Hybrid", "Electric", "Diesel"] as const;
+export const PROPERTY_TYPE_OPTIONS = ["House", "Condo", "Apartment", "Room", "Townhouse", "Land", "Commercial"] as const;
+export const LISTING_TYPE_OPTIONS  = ["For Sale", "For Rent"] as const;
+
+// Free CARFAX Canada VIN-decode tool — buyers paste the VIN there themselves.
+// (There's no public "deep link" that pre-fills a VIN and jumps straight to
+// a paid report, so this points at the legit free decoder rather than a
+// guessed-at URL.)
+export function getVinLookupUrl(): string {
+  return "https://www.carfax.ca/tools/vin-decode";
+}
 
 // ── Create listing ────────────────────────────────────────────────
 export async function createClassified(data: Omit<Classified, "id" | "createdAt" | "expiresAt" | "views" | "featured" | "verified">): Promise<string> {

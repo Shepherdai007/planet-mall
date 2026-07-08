@@ -4,10 +4,18 @@
 import Head              from "next/head";
 import { useRouter }     from "next/router";
 import { useState, useRef, useEffect } from "react";
-import toast             from "react-hot-toast";
-import Layout            from "@/components/Layout";
-import { useAuth }       from "@/context/AuthContext";
-import { createClassified, updateClassified, getClassified, CLASSIFIED_CATEGORIES, PROVINCES } from "@/services/classifiedService";
+import toast              from "react-hot-toast";
+import Layout             from "@/components/Layout";
+import AddressAutocompleteInput from "@/components/AddressAutocompleteInput";
+import { useAuth }        from "@/context/AuthContext";
+import {
+  createClassified, updateClassified, getClassified,
+  CLASSIFIED_CATEGORIES, PROVINCES,
+  VEHICLE_CATEGORY, REAL_ESTATE_CATEGORY,
+  TRANSMISSION_OPTIONS, DRIVE_TYPE_OPTIONS, FUEL_TYPE_OPTIONS,
+  PROPERTY_TYPE_OPTIONS, LISTING_TYPE_OPTIONS,
+} from "@/services/classifiedService";
+import { geocodeAddress } from "@/lib/googleMaps";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { storage } from "@/lib/firebase";
 
@@ -22,6 +30,7 @@ export default function PostClassifiedPage() {
   const [images,    setImages]    = useState<File[]>([]);
   const [previews,  setPreviews]  = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
 
   const [form, setForm] = useState({
     title:       "",
@@ -41,6 +50,31 @@ export default function PostClassifiedPage() {
     whatsapp:    "",
   });
 
+  // Cars & Vehicles specific fields
+  const [vehicle, setVehicle] = useState({
+    year:          "",
+    make:          "",
+    model:         "",
+    mileageKm:     "",
+    transmission:  "" as "" | "Automatic" | "Manual",
+    driveType:     "" as "" | "FWD" | "RWD" | "AWD",
+    fuelType:      "" as "" | "Gas" | "Hybrid" | "Electric" | "Diesel",
+    exteriorColor: "",
+    vin:           "",
+  });
+
+  // Real Estate specific fields
+  const [realEstate, setRealEstate] = useState({
+    listingType:  "" as "" | "For Sale" | "For Rent",
+    propertyType: "" as "" | "House" | "Condo" | "Apartment" | "Room" | "Townhouse" | "Land" | "Commercial",
+    bedrooms:     "",
+    bathrooms:    "",
+    sqft:         "",
+    address:      "",
+    lat:          undefined as number | undefined,
+    lng:          undefined as number | undefined,
+  });
+
   if (!loading && !isLoggedIn) {
     router.push("/auth/login?redirect=/classifieds/post");
     return null;
@@ -55,6 +89,12 @@ export default function PostClassifiedPage() {
 
   function up(field: string, value: any) {
     setForm(f => ({...f, [field]: value}));
+  }
+  function upVehicle(field: string, value: any) {
+    setVehicle(v => ({...v, [field]: value}));
+  }
+  function upRealEstate(field: string, value: any) {
+    setRealEstate(r => ({...r, [field]: value}));
   }
 
   // Load existing listing in edit mode
@@ -80,6 +120,33 @@ export default function PostClassifiedPage() {
         phone:       (listing as any).phone || "",
         whatsapp:    (listing as any).whatsapp || "",
       });
+      if (listing.vehicleDetails) {
+        const vd = listing.vehicleDetails;
+        setVehicle({
+          year:          vd.year ? String(vd.year) : "",
+          make:          vd.make || "",
+          model:         vd.model || "",
+          mileageKm:     vd.mileageKm ? String(vd.mileageKm) : "",
+          transmission:  vd.transmission || "",
+          driveType:     vd.driveType || "",
+          fuelType:      vd.fuelType || "",
+          exteriorColor: vd.exteriorColor || "",
+          vin:           vd.vin || "",
+        });
+      }
+      if (listing.realEstateDetails) {
+        const rd = listing.realEstateDetails;
+        setRealEstate({
+          listingType:  rd.listingType || "",
+          propertyType: rd.propertyType || "",
+          bedrooms:     rd.bedrooms ? String(rd.bedrooms) : "",
+          bathrooms:    rd.bathrooms ? String(rd.bathrooms) : "",
+          sqft:         rd.sqft ? String(rd.sqft) : "",
+          address:      rd.address || "",
+          lat:          rd.lat,
+          lng:          rd.lng,
+        });
+      }
       // Show existing images as previews
       if (listing.images?.length) setPreviews(listing.images);
       setEditLoading(false);
@@ -120,7 +187,24 @@ export default function PostClassifiedPage() {
       const existingUrls = previews.filter(p => p.startsWith("http"));
       const allImages = [...existingUrls, ...newImageUrls];
 
-      const data = {
+      // If it's a Real Estate listing and we don't have coordinates yet
+      // (user typed the address instead of picking an autocomplete result),
+      // try to geocode it now so the map pin still works.
+      let reLat = realEstate.lat;
+      let reLng = realEstate.lng;
+      let reAddress = realEstate.address;
+      if (form.category === REAL_ESTATE_CATEGORY && realEstate.address && (!reLat || !reLng)) {
+        setGeocoding(true);
+        const geocoded = await geocodeAddress(realEstate.address);
+        setGeocoding(false);
+        if (geocoded) {
+          reLat = geocoded.lat;
+          reLng = geocoded.lng;
+          reAddress = geocoded.formattedAddress;
+        }
+      }
+
+      const data: any = {
         title:       form.title,
         description: form.description,
         price:       parseFloat(form.price) || 0,
@@ -138,6 +222,40 @@ export default function PostClassifiedPage() {
         phone:       form.phone,
         whatsapp:    form.whatsapp,
       };
+
+      // Attach category-specific details, and explicitly clear out the
+      // other category's details (use null, not undefined — Firestore
+      // rejects undefined field values) in case the seller switched
+      // categories while editing an existing listing.
+      if (form.category === VEHICLE_CATEGORY) {
+        data.vehicleDetails = {
+          year:          vehicle.year ? parseInt(vehicle.year) : null,
+          make:          vehicle.make || "",
+          model:         vehicle.model || "",
+          mileageKm:     vehicle.mileageKm ? parseInt(vehicle.mileageKm) : null,
+          transmission:  vehicle.transmission || "",
+          driveType:     vehicle.driveType || "",
+          fuelType:      vehicle.fuelType || "",
+          exteriorColor: vehicle.exteriorColor || "",
+          vin:           vehicle.vin || "",
+        };
+        data.realEstateDetails = null;
+      } else if (form.category === REAL_ESTATE_CATEGORY) {
+        data.realEstateDetails = {
+          listingType:  realEstate.listingType || "",
+          propertyType: realEstate.propertyType || "",
+          bedrooms:     realEstate.bedrooms ? parseInt(realEstate.bedrooms) : null,
+          bathrooms:    realEstate.bathrooms ? parseFloat(realEstate.bathrooms) : null,
+          sqft:         realEstate.sqft ? parseInt(realEstate.sqft) : null,
+          address:      reAddress || "",
+          lat:          reLat ?? null,
+          lng:          reLng ?? null,
+        };
+        data.vehicleDetails = null;
+      } else {
+        data.vehicleDetails = null;
+        data.realEstateDetails = null;
+      }
 
       if (isEditMode) {
         await updateClassified(edit as string, data);
@@ -166,6 +284,8 @@ export default function PostClassifiedPage() {
   const inp = "w-full px-4 py-3 rounded-xl border text-sm font-dm-sans focus:outline-none transition-colors";
   const inpStyle = {background:"#fff",borderColor:"#D4CFC6",color:"#1A1714"};
   const subCategories = form.category ? (CLASSIFIED_CATEGORIES as any)[form.category] || [] : [];
+  const isVehicle    = form.category === VEHICLE_CATEGORY;
+  const isRealEstate = form.category === REAL_ESTATE_CATEGORY;
 
   return (
     <>
@@ -271,6 +391,189 @@ export default function PostClassifiedPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Cars & Vehicles specific fields */}
+              {isVehicle && (
+                <div className="p-6 rounded-2xl space-y-4" style={{background:"#fff",border:"1px solid #E8E2D9"}}>
+                  <h2 className="font-syne font-bold text-lg" style={{color:"#1A1714"}}>🚗 Vehicle details</h2>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold font-syne mb-1.5" style={{color:"#1A1714"}}>Year</label>
+                      <input className={inp} style={inpStyle} type="number" value={vehicle.year} onChange={e=>upVehicle("year",e.target.value)}
+                        placeholder="2019"
+                        onFocus={e=>{e.target.style.borderColor="#C4531A"}} onBlur={e=>{e.target.style.borderColor="#D4CFC6"}} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold font-syne mb-1.5" style={{color:"#1A1714"}}>Make</label>
+                      <input className={inp} style={inpStyle} value={vehicle.make} onChange={e=>upVehicle("make",e.target.value)}
+                        placeholder="Honda"
+                        onFocus={e=>{e.target.style.borderColor="#C4531A"}} onBlur={e=>{e.target.style.borderColor="#D4CFC6"}} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold font-syne mb-1.5" style={{color:"#1A1714"}}>Model</label>
+                      <input className={inp} style={inpStyle} value={vehicle.model} onChange={e=>upVehicle("model",e.target.value)}
+                        placeholder="Civic"
+                        onFocus={e=>{e.target.style.borderColor="#C4531A"}} onBlur={e=>{e.target.style.borderColor="#D4CFC6"}} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold font-syne mb-1.5" style={{color:"#1A1714"}}>Mileage (km)</label>
+                      <input className={inp} style={inpStyle} type="number" value={vehicle.mileageKm} onChange={e=>upVehicle("mileageKm",e.target.value)}
+                        placeholder="85000"
+                        onFocus={e=>{e.target.style.borderColor="#C4531A"}} onBlur={e=>{e.target.style.borderColor="#D4CFC6"}} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold font-syne mb-1.5" style={{color:"#1A1714"}}>Exterior color</label>
+                      <input className={inp} style={inpStyle} value={vehicle.exteriorColor} onChange={e=>upVehicle("exteriorColor",e.target.value)}
+                        placeholder="Silver"
+                        onFocus={e=>{e.target.style.borderColor="#C4531A"}} onBlur={e=>{e.target.style.borderColor="#D4CFC6"}} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold font-syne mb-1.5" style={{color:"#1A1714"}}>Transmission</label>
+                    <div className="flex gap-2 flex-wrap">
+                      {TRANSMISSION_OPTIONS.map(v=>(
+                        <button key={v} type="button" onClick={()=>upVehicle("transmission",v)}
+                          className="px-3 py-1.5 rounded-xl text-xs font-dm-sans font-medium transition-all"
+                          style={{
+                            background: vehicle.transmission===v?"#C4531A":"#F6F1E9",
+                            color:      vehicle.transmission===v?"#fff":"#8A8480",
+                            border:     `1px solid ${vehicle.transmission===v?"#C4531A":"#D4CFC6"}`,
+                          }}>
+                          {v}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold font-syne mb-1.5" style={{color:"#1A1714"}}>Drive type</label>
+                    <div className="flex gap-2 flex-wrap">
+                      {DRIVE_TYPE_OPTIONS.map(v=>(
+                        <button key={v} type="button" onClick={()=>upVehicle("driveType",v)}
+                          className="px-3 py-1.5 rounded-xl text-xs font-dm-sans font-medium transition-all"
+                          style={{
+                            background: vehicle.driveType===v?"#C4531A":"#F6F1E9",
+                            color:      vehicle.driveType===v?"#fff":"#8A8480",
+                            border:     `1px solid ${vehicle.driveType===v?"#C4531A":"#D4CFC6"}`,
+                          }}>
+                          {v}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold font-syne mb-1.5" style={{color:"#1A1714"}}>Fuel type</label>
+                    <div className="flex gap-2 flex-wrap">
+                      {FUEL_TYPE_OPTIONS.map(v=>(
+                        <button key={v} type="button" onClick={()=>upVehicle("fuelType",v)}
+                          className="px-3 py-1.5 rounded-xl text-xs font-dm-sans font-medium transition-all"
+                          style={{
+                            background: vehicle.fuelType===v?"#C4531A":"#F6F1E9",
+                            color:      vehicle.fuelType===v?"#fff":"#8A8480",
+                            border:     `1px solid ${vehicle.fuelType===v?"#C4531A":"#D4CFC6"}`,
+                          }}>
+                          {v}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold font-syne mb-1.5" style={{color:"#1A1714"}}>VIN <span className="font-normal" style={{color:"#8A8480"}}>(optional — lets buyers run a Carfax-style history check)</span></label>
+                    <input className={inp} style={inpStyle} value={vehicle.vin} onChange={e=>upVehicle("vin",e.target.value.toUpperCase())}
+                      placeholder="1HGCM82633A123456" maxLength={17}
+                      onFocus={e=>{e.target.style.borderColor="#C4531A"}} onBlur={e=>{e.target.style.borderColor="#D4CFC6"}} />
+                  </div>
+                </div>
+              )}
+
+              {/* Real Estate specific fields */}
+              {isRealEstate && (
+                <div className="p-6 rounded-2xl space-y-4" style={{background:"#fff",border:"1px solid #E8E2D9"}}>
+                  <h2 className="font-syne font-bold text-lg" style={{color:"#1A1714"}}>🏠 Property details</h2>
+
+                  <div>
+                    <label className="block text-sm font-semibold font-syne mb-1.5" style={{color:"#1A1714"}}>Listing type</label>
+                    <div className="flex gap-2 flex-wrap">
+                      {LISTING_TYPE_OPTIONS.map(v=>(
+                        <button key={v} type="button" onClick={()=>upRealEstate("listingType",v)}
+                          className="px-3 py-1.5 rounded-xl text-xs font-dm-sans font-medium transition-all"
+                          style={{
+                            background: realEstate.listingType===v?"#C4531A":"#F6F1E9",
+                            color:      realEstate.listingType===v?"#fff":"#8A8480",
+                            border:     `1px solid ${realEstate.listingType===v?"#C4531A":"#D4CFC6"}`,
+                          }}>
+                          {v}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold font-syne mb-1.5" style={{color:"#1A1714"}}>Property type</label>
+                    <div className="flex gap-2 flex-wrap">
+                      {PROPERTY_TYPE_OPTIONS.map(v=>(
+                        <button key={v} type="button" onClick={()=>upRealEstate("propertyType",v)}
+                          className="px-3 py-1.5 rounded-xl text-xs font-dm-sans font-medium transition-all"
+                          style={{
+                            background: realEstate.propertyType===v?"#C4531A":"#F6F1E9",
+                            color:      realEstate.propertyType===v?"#fff":"#8A8480",
+                            border:     `1px solid ${realEstate.propertyType===v?"#C4531A":"#D4CFC6"}`,
+                          }}>
+                          {v}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold font-syne mb-1.5" style={{color:"#1A1714"}}>Bedrooms</label>
+                      <input className={inp} style={inpStyle} type="number" min="0" value={realEstate.bedrooms} onChange={e=>upRealEstate("bedrooms",e.target.value)}
+                        placeholder="3"
+                        onFocus={e=>{e.target.style.borderColor="#C4531A"}} onBlur={e=>{e.target.style.borderColor="#D4CFC6"}} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold font-syne mb-1.5" style={{color:"#1A1714"}}>Bathrooms</label>
+                      <input className={inp} style={inpStyle} type="number" min="0" step="0.5" value={realEstate.bathrooms} onChange={e=>upRealEstate("bathrooms",e.target.value)}
+                        placeholder="2"
+                        onFocus={e=>{e.target.style.borderColor="#C4531A"}} onBlur={e=>{e.target.style.borderColor="#D4CFC6"}} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold font-syne mb-1.5" style={{color:"#1A1714"}}>Sq. footage</label>
+                      <input className={inp} style={inpStyle} type="number" min="0" value={realEstate.sqft} onChange={e=>upRealEstate("sqft",e.target.value)}
+                        placeholder="1200"
+                        onFocus={e=>{e.target.style.borderColor="#C4531A"}} onBlur={e=>{e.target.style.borderColor="#D4CFC6"}} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold font-syne mb-1.5" style={{color:"#1A1714"}}>Address</label>
+                    <AddressAutocompleteInput
+                      value={realEstate.address}
+                      onChange={v => upRealEstate("address", v)}
+                      onPlaceSelected={place => {
+                        setRealEstate(r => ({...r, address: place.address, lat: place.lat, lng: place.lng}));
+                        if (place.city) up("city", place.city);
+                        if (place.province) up("province", place.province);
+                      }}
+                      placeholder="Start typing an address..."
+                      className={inp}
+                      style={inpStyle}
+                      onFocus={e=>{e.target.style.borderColor="#C4531A"}}
+                      onBlur={e=>{e.target.style.borderColor="#D4CFC6"}}
+                    />
+                    <p className="text-xs font-dm-sans mt-1.5" style={{color:"#8A8480"}}>
+                      Pick a suggestion from the dropdown so we can drop an accurate pin on the map. This address is shown publicly on the listing — for rentals, consider using just the street name if you'd rather not reveal the exact unit.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Price */}
               <div className="p-6 rounded-2xl space-y-4" style={{background:"#fff",border:"1px solid #E8E2D9"}}>
@@ -386,11 +689,11 @@ export default function PostClassifiedPage() {
                 </label>
               </div>
 
-              <button type="submit" disabled={saving || uploading}
+              <button type="submit" disabled={saving || uploading || geocoding}
                 className="w-full py-4 rounded-xl text-white font-dm-sans font-bold text-base disabled:opacity-50 flex items-center justify-center gap-2"
                 style={{background:"#C4531A"}}>
-                {saving || uploading
-                  ? <><span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />{uploading?"Uploading photos...":isEditMode?"Saving changes...":"Posting ad..."}</>
+                {saving || uploading || geocoding
+                  ? <><span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />{uploading?"Uploading photos...":geocoding?"Locating address...":isEditMode?"Saving changes...":"Posting ad..."}</>
                   : isEditMode ? "Save changes →" : "Post ad for free →"}
               </button>
               <p className="text-xs text-center font-dm-sans" style={{color:"#8A8480"}}>
