@@ -225,11 +225,6 @@ export default function SignupPage() {
     }
   }
 
-  // ── Skip phone (buyer fallback) ───────────────────────────────
-  function handleSkipPhone() {
-    router.push("/seller/create-shop");
-  }
-
   return (
     <>
       <Head><title>Create account — Planet Mall</title></Head>
@@ -407,12 +402,6 @@ export default function SignupPage() {
                       ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Sending...</>
                       : "Send verification code 📱"}
                   </button>
-
-                  <button onClick={handleSkipPhone}
-                    className="w-full py-3 text-sm font-dm-sans text-center"
-                    style={{color:"#8A8480"}}>
-                    Skip for now (limits apply)
-                  </button>
                 </div>
               ) : (
                 /* ── Enter OTP ── */
@@ -470,12 +459,6 @@ export default function SignupPage() {
                       </button>
                     )}
                   </div>
-
-                  <button onClick={handleSkipPhone}
-                    className="w-full py-3 text-sm font-dm-sans text-center"
-                    style={{color:"#8A8480"}}>
-                    Skip for now (limits apply)
-                  </button>
                 </div>
               )}
             </div>

@@ -48,6 +48,19 @@ export default function PostFoodPage() {
     setForm(f => ({ ...f, [field]: value }));
   }
 
+  if (!loading && !isLoggedIn) {
+    router.push("/auth/login?redirect=/food/post");
+    return null;
+  }
+
+  // Require phone verification before anyone can post a food listing —
+  // same anti-fraud gate used for sellers creating a shop and for
+  // Classifieds posts.
+  if (!loading && isLoggedIn && !userDoc?.phoneVerified) {
+    router.push("/auth/verify-phone?redirect=/food/post");
+    return null;
+  }
+
   // Load existing listing in edit mode
   useEffect(() => {
     if (!edit) return;
