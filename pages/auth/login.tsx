@@ -10,6 +10,8 @@ import { useState }    from "react";
 import toast           from "react-hot-toast";
 import { signInWithEmail, signInWithGoogle } from "@/lib/auth";
 import { useAuth }     from "@/context/AuthContext";
+import { doc, getDoc } from "firebase/firestore";
+import { db }          from "@/lib/firebase";
 
 export default function LoginPage() {
   const router   = useRouter();
@@ -50,7 +52,21 @@ export default function LoginPage() {
   async function handleGoogleLogin() {
     setGoogleLoading(true);
     try {
-      await signInWithGoogle();
+      const user = await signInWithGoogle();
+
+      // signInWithGoogle only authenticates with Firebase — it does NOT
+      // create a Firestore user document. If this is someone's very
+      // first time signing in (they've never used email signup or
+      // Google before), no doc exists yet, meaning no role, no phone
+      // verification status, nothing. Send them to pick buyer/seller
+      // and finish setup before letting them into the app.
+      const userDocSnap = await getDoc(doc(db, "users", user.uid));
+
+      if (!userDocSnap.exists()) {
+        router.push(`/auth/choose-role?redirect=${encodeURIComponent(redirect)}`);
+        return;
+      }
+
       toast.success("Signed in with Google");
       router.push(redirect);
     } catch {
