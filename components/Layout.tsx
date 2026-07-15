@@ -7,6 +7,7 @@ import { Toaster }   from "react-hot-toast";
 import Navbar        from "./Navbar";
 import CartDrawer    from "./CartDrawer";
 import AIConcierge   from "./AIConcierge";
+import InstallPrompt from "./InstallPrompt";
 
 interface Props {
   children: React.ReactNode;
@@ -19,6 +20,7 @@ export default function Layout({ children, fullscreen = false }: Props) {
       {!fullscreen && <Navbar />}
       <CartDrawer />
       <AIConcierge />
+      <InstallPrompt />
 
       <main className={fullscreen ? "" : "pt-16"}>
         {children}
