@@ -14,11 +14,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: "plan, userId, and email required" });
   }
 
+  // NOTE: amounts are in cents. These MUST match whatever's displayed on
+  // pages/pricing.tsx — if you change a price there, change it here too,
+  // in the SAME commit, or checkout will silently charge the old amount.
   const PLANS: Record<string, { amount: number; interval: "month" | "year"; name: string; planName: string }> = {
-    premium_monthly:  { amount: 1499,  interval: "month", name: "Planet Mall Premium",         planName: "premium" },
-    premium_yearly:   { amount: 12900, interval: "year",  name: "Planet Mall Premium (Yearly)", planName: "premium" },
-    business_monthly: { amount: 3999, interval: "month", name: "Planet Mall Business",         planName: "business" },
-    broker_monthly:   { amount: 1900, interval: "month", name: "Planet Mall Insurance Broker Pro", planName: "broker" },
+    premium_monthly:  { amount: 800,   interval: "month", name: "Planet Mall Premium",         planName: "premium" },
+    premium_yearly:   { amount: 8000,  interval: "year",  name: "Planet Mall Premium (Yearly)", planName: "premium" }, // CA$80/year — 17% off CA$8×12
+    business_monthly: { amount: 1000,  interval: "month", name: "Planet Mall Business",         planName: "business" },
+    broker_monthly:   { amount: 1900,  interval: "month", name: "Planet Mall Insurance Broker Pro", planName: "broker" },
   };
 
   const selected = PLANS[plan];

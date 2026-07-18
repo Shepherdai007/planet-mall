@@ -152,7 +152,7 @@ export default function PricingPage() {
                   Yearly
                   <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold"
                     style={{background:"rgba(42,107,69,0.3)",color:"#2A6B45"}}>
-                    SAVE 25%
+                    SAVE 17%
                   </span>
                 </button>
               </div>
@@ -162,9 +162,15 @@ export default function PricingPage() {
             <div className="grid md:grid-cols-3 gap-6">
               {PLANS.map(plan => {
                 const isCurrentPlan = currentPlan === plan.id;
+                // Yearly Premium = CA$80/year (17% off CA$8×12=CA$96).
+                // This MUST stay in sync with the premium_yearly amount in
+                // pages/api/stripe/create-checkout.ts — same number, same commit.
                 const displayPrice = yearly && plan.id === "premium_monthly"
-                  ? { price: "CA$89", period: "year" }
+                  ? { price: "CA$80", period: "year" }
                   : { price: plan.price, period: plan.period };
+                const displaySubtitle = yearly && plan.id === "premium_monthly"
+                  ? "Billed annually"
+                  : plan.subtitle;
 
                 return (
                   <div key={plan.id}
@@ -195,7 +201,7 @@ export default function PricingPage() {
                         <span className="text-sm text-muted font-dm-sans">/{displayPrice.period}</span>
                       )}
                     </div>
-                    <p className="text-xs text-muted font-dm-sans mb-6">{plan.subtitle}</p>
+                    <p className="text-xs text-muted font-dm-sans mb-6">{displaySubtitle}</p>
 
                     <ul className="space-y-2.5 mb-8">
                       {plan.features.map(f => (
